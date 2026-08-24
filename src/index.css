@@ -3,9 +3,21 @@
 @tailwind utilities;
 
 body {
-  font-family: 'Inter', system_ui, sans-serif;
+  font-family: 'Nunito', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-.hero-bg {
-  background: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)), url('https://picsum.photos/id/1015/2000/1200') center/cover no-repeat;
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2.5 rounded-xl transition active:scale-95;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-4 py-2.5 rounded-xl transition active:scale-95;
+  }
+  .input {
+    @apply w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition;
+  }
 }
