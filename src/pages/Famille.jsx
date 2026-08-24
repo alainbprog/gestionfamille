@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Users, X, Cake } from 'lucide-react';
+import { Plus, Trash2, Users, X, Cake, RotateCcw } from 'lucide-react';
 import { useFamily, MEMBER_COLORS } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
@@ -18,7 +18,7 @@ function ageFrom(birthdate) {
 const emptyForm = { name: '', role: 'Enfant', emoji: '🧒', color: MEMBER_COLORS[3], birthdate: '' };
 
 export default function Famille() {
-  const { members, todos, events, addMember, removeMember } = useFamily();
+  const { members, todos, events, addMember, removeMember, resetData } = useFamily();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
@@ -72,6 +72,22 @@ export default function Famille() {
           );
         })}
       </div>
+
+      {/* Réinitialisation des données */}
+      <section className="mt-10 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-extrabold text-gray-500 mb-1">Réinitialiser l'application</h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Efface toutes les données locales (membres, courses, agenda, tâches, menus) et rétablit la famille par défaut. Action irréversible.
+        </p>
+        <button
+          onClick={() => {
+            if (confirm('Tout réinitialiser ? Toutes vos données locales seront effacées et remplacées par la famille par défaut.')) resetData();
+          }}
+          className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl transition active:scale-95"
+        >
+          <RotateCcw size={18} /> Réinitialiser les données
+        </button>
+      </section>
 
       {open && (
         <div className="fixed inset-0 bg-black/40 z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setOpen(false)}>

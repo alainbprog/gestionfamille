@@ -174,6 +174,9 @@ export function FamilyProvider({ children }) {
     return toAdd.length;
   };
 
+  // --- Réinitialisation complète ---
+  const resetData = () => setData(JSON.parse(JSON.stringify(defaultData)));
+
   const memberById = (id) => data.members.find((m) => m.id === id);
 
   const value = {
@@ -184,6 +187,7 @@ export function FamilyProvider({ children }) {
     addEvent, updateEvent, removeEvent,
     addTodo, toggleTodo, updateTodo, removeTodo,
     setMeal, clearMenus, generateShoppingFromMenus,
+    resetData,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;
