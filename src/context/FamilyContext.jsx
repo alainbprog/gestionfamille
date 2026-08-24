@@ -40,9 +40,11 @@ export const RECURRENCES = {
 
 const defaultData = {
   members: [
-    { id: 'm1', name: 'Laurène', role: 'Parent', color: '#ec4899', emoji: '👩', birthdate: '' },
-    { id: 'm2', name: 'Theo', role: 'Enfant', color: '#3b82f6', emoji: '👦', birthdate: '' },
-    { id: 'm3', name: 'Lilou', role: 'Enfant', color: '#f59e0b', emoji: '👧', birthdate: '' },
+    { id: 'm1', name: 'Alain', role: 'Parent', color: '#3b82f6', emoji: '👨', birthdate: '' },
+    { id: 'm2', name: 'Sylvie', role: 'Parent', color: '#ec4899', emoji: '👩', birthdate: '' },
+    { id: 'm3', name: 'Laurène', role: 'Enfant', color: '#8b5cf6', emoji: '👧', birthdate: '' },
+    { id: 'm4', name: 'Théo', role: 'Enfant', color: '#10b981', emoji: '👦', birthdate: '' },
+    { id: 'm5', name: 'Lilou', role: 'Enfant', color: '#f59e0b', emoji: '👧', birthdate: '' },
   ],
   shopping: [],
   events: [],
