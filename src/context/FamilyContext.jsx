@@ -1,8 +1,11 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useState } from 'react';
 
 const FamilyContext = createContext();
 
 const STORAGE_KEY = 'tribu-data-v1';
+const REV_KEY = 'tribu-rev-v1';
+const SYNC_KEY = 'tribu-sync-v1';
+const SYNC_URL = '/.netlify/functions/sync';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
@@ -81,19 +84,71 @@ function load() {
   }
 }
 
+function loadRev() {
+  try {
+    return Number(localStorage.getItem(REV_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+function loadSyncConfig() {
+  try {
+    const raw = localStorage.getItem(SYNC_KEY);
+    return raw ? JSON.parse(raw) : { enabled: false, code: '' };
+  } catch {
+    return { enabled: false, code: '' };
+  }
+}
+
 export function FamilyProvider({ children }) {
   const [data, setData] = useState(load);
+  const [sync, setSync] = useState(() => ({ ...loadSyncConfig(), status: 'idle' }));
+
+  // Révision locale (horodatage de la dernière modification) pour la fusion multi-appareils
+  const revRef = useRef(loadRev());
+  const dirtyRef = useRef(false); // des changements locaux restent à envoyer
+  const dataRef = useRef(data);
+  const applyingRemoteRef = useRef(false);
 
   useEffect(() => {
+    dataRef.current = data;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(REV_KEY, String(revRef.current));
     } catch {
       /* stockage indisponible (navigation privée) — on ignore */
     }
   }, [data]);
 
-  const update = (key, updater) =>
+  useEffect(() => {
+    try {
+      localStorage.setItem(SYNC_KEY, JSON.stringify({ enabled: sync.enabled, code: sync.code }));
+    } catch { /* ignore */ }
+  }, [sync.enabled, sync.code]);
+
+  // Marque une modification locale (nouvelle révision à propager)
+  const bumpRev = () => {
+    if (applyingRemoteRef.current) return; // changement venu du cloud : ne pas re-propager
+    revRef.current = Date.now();
+    dirtyRef.current = true;
+  };
+
+  // Applique un état reçu du cloud sans le renvoyer
+  const applyRemote = (record) => {
+    applyingRemoteRef.current = true;
+    revRef.current = Number(record.rev) || 0;
+    dirtyRef.current = false;
+    setData(record.data);
+    try { localStorage.setItem(REV_KEY, String(revRef.current)); } catch { /* ignore */ }
+    // Réautorise la propagation au tick suivant
+    setTimeout(() => { applyingRemoteRef.current = false; }, 0);
+  };
+
+  const update = (key, updater) => {
     setData((d) => ({ ...d, [key]: updater(d[key]) }));
+    bumpRev();
+  };
 
   // --- Membres de la famille ---
   const addMember = (m) =>
@@ -175,7 +230,77 @@ export function FamilyProvider({ children }) {
   };
 
   // --- Réinitialisation complète ---
-  const resetData = () => setData(JSON.parse(JSON.stringify(defaultData)));
+  const resetData = () => {
+    setData(JSON.parse(JSON.stringify(defaultData)));
+    bumpRev();
+  };
+
+  // --- Synchronisation multi-appareils (via Netlify Function + Blobs) ---
+  const pushNow = async () => {
+    const res = await fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ code: sync.code, data: dataRef.current, rev: revRef.current }),
+    });
+    if (!res.ok) throw new Error('sync http ' + res.status);
+    const record = await res.json();
+    // Le serveur détenait une version plus récente : on l'adopte
+    if (record && Number(record.rev) > revRef.current) applyRemote(record);
+    else dirtyRef.current = false;
+  };
+
+  const pullNow = async () => {
+    const res = await fetch(`${SYNC_URL}?code=${encodeURIComponent(sync.code)}`);
+    if (!res.ok) throw new Error('sync http ' + res.status);
+    const record = await res.json();
+    if (record && Number(record.rev) > revRef.current) applyRemote(record);
+  };
+
+  // Boucle de synchronisation périodique quand le partage est actif
+  useEffect(() => {
+    if (!sync.enabled || !sync.code) return;
+    let stopped = false;
+
+    const tick = async () => {
+      try {
+        if (dirtyRef.current) await pushNow();
+        else await pullNow();
+        if (!stopped) setSync((s) => (s.status === 'synced' ? s : { ...s, status: 'synced' }));
+      } catch {
+        if (!stopped) setSync((s) => (s.status === 'offline' ? s : { ...s, status: 'offline' }));
+      }
+    };
+
+    tick();
+    const id = setInterval(tick, 4000);
+    return () => { stopped = true; clearInterval(id); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sync.enabled, sync.code]);
+
+  // Active le partage : rejoint le code (adopte l'existant, sinon envoie l'état local)
+  const connectSync = async (code) => {
+    const trimmed = (code || '').trim();
+    if (!trimmed) return { ok: false, error: 'Code requis' };
+    setSync({ enabled: true, code: trimmed, status: 'connecting' });
+    try {
+      const res = await fetch(`${SYNC_URL}?code=${encodeURIComponent(trimmed)}`);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const record = await res.json();
+      if (record && Number(record.rev) >= revRef.current) {
+        applyRemote(record); // rejoindre une famille existante
+      } else {
+        dirtyRef.current = true; // pas de données distantes : on enverra les nôtres
+      }
+      setSync({ enabled: true, code: trimmed, status: 'synced' });
+      return { ok: true };
+    } catch {
+      // Le partage reste activé mais hors ligne (ex. non déployé sur Netlify)
+      setSync({ enabled: true, code: trimmed, status: 'offline' });
+      return { ok: false, error: 'Service de synchronisation injoignable (disponible une fois l’app déployée sur Netlify).' };
+    }
+  };
+
+  const disconnectSync = () => setSync({ enabled: false, code: '', status: 'idle' });
 
   const memberById = (id) => data.members.find((m) => m.id === id);
 
@@ -188,6 +313,7 @@ export function FamilyProvider({ children }) {
     addTodo, toggleTodo, updateTodo, removeTodo,
     setMeal, clearMenus, generateShoppingFromMenus,
     resetData,
+    sync, connectSync, disconnectSync,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;

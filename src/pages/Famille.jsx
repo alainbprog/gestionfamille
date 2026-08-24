@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Users, X, Cake, RotateCcw } from 'lucide-react';
+import { Plus, Trash2, Users, X, Cake, RotateCcw, Cloud, CloudOff, RefreshCw, Check as CheckIcon } from 'lucide-react';
 import { useFamily, MEMBER_COLORS } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
@@ -18,9 +18,27 @@ function ageFrom(birthdate) {
 const emptyForm = { name: '', role: 'Enfant', emoji: '🧒', color: MEMBER_COLORS[3], birthdate: '' };
 
 export default function Famille() {
-  const { members, todos, events, addMember, removeMember, resetData } = useFamily();
+  const { members, todos, events, addMember, removeMember, resetData, sync, connectSync, disconnectSync } = useFamily();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [codeInput, setCodeInput] = useState('');
+  const [syncMsg, setSyncMsg] = useState('');
+
+  const handleConnect = async (e) => {
+    e.preventDefault();
+    setSyncMsg('');
+    const res = await connectSync(codeInput);
+    if (!res.ok && res.error) setSyncMsg(res.error);
+    setCodeInput('');
+  };
+
+  const SYNC_STATUS = {
+    idle: { label: 'Inactif', color: 'text-gray-400', Icon: CloudOff },
+    connecting: { label: 'Connexion…', color: 'text-amber-500', Icon: RefreshCw },
+    synced: { label: 'Synchronisé', color: 'text-emerald-600', Icon: CheckIcon },
+    offline: { label: 'Hors ligne', color: 'text-red-500', Icon: CloudOff },
+  };
+  const st = SYNC_STATUS[sync.status] || SYNC_STATUS.idle;
 
   const submit = (e) => {
     e.preventDefault();
@@ -73,8 +91,46 @@ export default function Famille() {
         })}
       </div>
 
-      {/* Réinitialisation des données */}
+      {/* Partage entre appareils */}
       <section className="mt-10 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-extrabold text-gray-500 mb-1 flex items-center gap-2">
+          <Cloud size={16} /> Partage entre appareils
+        </h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Choisissez un <b>code famille</b> secret et saisissez-le sur chaque téléphone ou ordinateur : tous les appareils partageant ce code voient les mêmes données (courses, agenda, tâches, menus, membres).
+        </p>
+
+        {!sync.enabled ? (
+          <form onSubmit={handleConnect} className="flex flex-col sm:flex-row gap-2 max-w-md">
+            <input
+              className="input flex-1"
+              placeholder="Code famille (ex. maison-dupont-42)"
+              value={codeInput}
+              onChange={(e) => setCodeInput(e.target.value)}
+            />
+            <button type="submit" className="btn-primary"><Cloud size={18} /> Activer</button>
+          </form>
+        ) : (
+          <div className="card p-4 flex flex-wrap items-center gap-3 max-w-md">
+            <st.Icon size={22} className={`${st.color} ${sync.status === 'connecting' ? 'animate-spin' : ''}`} />
+            <div className="flex-1 min-w-0">
+              <p className="font-bold leading-tight">Code : <span className="font-mono text-brand-700">{sync.code}</span></p>
+              <p className={`text-sm font-semibold ${st.color}`}>{st.label}</p>
+            </div>
+            <button onClick={disconnectSync} className="btn-ghost">Désactiver</button>
+          </div>
+        )}
+
+        {syncMsg && <p className="text-sm text-amber-600 mt-2 max-w-md">{syncMsg}</p>}
+        {sync.status === 'offline' && !syncMsg && (
+          <p className="text-sm text-gray-400 mt-2 max-w-md">
+            La synchronisation fonctionne une fois l'application déployée sur Netlify. En local, les données restent sur cet appareil.
+          </p>
+        )}
+      </section>
+
+      {/* Réinitialisation des données */}
+      <section className="mt-8 border-t border-gray-100 pt-6">
         <h2 className="text-sm font-extrabold text-gray-500 mb-1">Réinitialiser l'application</h2>
         <p className="text-sm text-gray-400 mb-3">
           Efface toutes les données locales (membres, courses, agenda, tâches, menus) et rétablit la famille par défaut. Action irréversible.
