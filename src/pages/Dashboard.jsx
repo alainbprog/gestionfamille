@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ShoppingCart, CalendarDays, ListTodo, Users, ArrowRight, Cake, MapPin } from 'lucide-react';
-import { useFamily } from '../context/FamilyContext';
+import { useFamily, isTaskDone } from '../context/FamilyContext';
 import { MemberChip, Avatar } from '../components/MemberBadge';
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -45,7 +45,7 @@ export default function Dashboard() {
   const { shopping, events, todos, members, memberById } = useFamily();
 
   const shoppingLeft = shopping.filter((i) => !i.done).length;
-  const todosLeft = todos.filter((t) => !t.done);
+  const todosLeft = todos.filter((t) => !isTaskDone(t));
   const today = todayStr();
   const todayEvents = events.filter((e) => e.date === today).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   const upcoming = [...events].filter((e) => e.date > today).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 3);

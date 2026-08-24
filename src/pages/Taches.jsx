@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, ListTodo, Check } from 'lucide-react';
-import { useFamily } from '../context/FamilyContext';
+import { Plus, Trash2, ListTodo, Check, Repeat } from 'lucide-react';
+import { useFamily, isTaskDone, RECURRENCES } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
 const PRIORITIES = {
@@ -14,19 +14,21 @@ export default function Taches() {
   const [text, setText] = useState('');
   const [memberId, setMemberId] = useState('');
   const [priority, setPriority] = useState('normale');
+  const [recurrence, setRecurrence] = useState('none');
   const [filter, setFilter] = useState('all'); // all | mine-by-member id
 
   const submit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addTodo({ text: text.trim(), memberId: memberId || null, priority });
+    addTodo({ text: text.trim(), memberId: memberId || null, priority, recurrence });
     setText('');
+    setRecurrence('none');
   };
 
   const priorityRank = { haute: 0, normale: 1, basse: 2 };
   const visible = todos.filter((t) => filter === 'all' || t.memberId === filter);
-  const pending = visible.filter((t) => !t.done).sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
-  const done = visible.filter((t) => t.done);
+  const pending = visible.filter((t) => !isTaskDone(t)).sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
+  const done = visible.filter((t) => isTaskDone(t));
 
   return (
     <div>
@@ -48,6 +50,9 @@ export default function Taches() {
           </select>
           <select className="input sm:w-40" value={priority} onChange={(e) => setPriority(e.target.value)}>
             {Object.entries(PRIORITIES).map(([k, v]) => <option key={k} value={k}>Priorité {v.label.toLowerCase()}</option>)}
+          </select>
+          <select className="input sm:w-40" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} aria-label="Récurrence">
+            {Object.entries(RECURRENCES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <button type="submit" className="btn-primary"><Plus size={18} /> Ajouter</button>
         </div>
@@ -81,6 +86,11 @@ export default function Taches() {
               <p className="font-semibold">{t.text}</p>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${PRIORITIES[t.priority].color}`}>{PRIORITIES[t.priority].label}</span>
+                {t.recurrence && t.recurrence !== 'none' && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 inline-flex items-center gap-1">
+                    <Repeat size={11} /> {RECURRENCES[t.recurrence]}
+                  </span>
+                )}
               </div>
             </div>
             {t.memberId && <Avatar member={memberById(t.memberId)} size={30} />}

@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, ShoppingCart, CalendarDays, Users, ListTodo } from 'lucide-react';
+import { LayoutDashboard, ShoppingCart, CalendarDays, Users, ListTodo, UtensilsCrossed } from 'lucide-react';
 
 const links = [
   { to: '/', label: 'Accueil', icon: LayoutDashboard, end: true },
   { to: '/courses', label: 'Courses', icon: ShoppingCart },
+  { to: '/menus', label: 'Menus', icon: UtensilsCrossed },
   { to: '/agenda', label: 'Agenda', icon: CalendarDays },
   { to: '/taches', label: 'Tâches', icon: ListTodo },
   { to: '/famille', label: 'Famille', icon: Users },

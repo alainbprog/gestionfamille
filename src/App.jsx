@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import Agenda from './pages/Agenda';
+import Menus from './pages/Menus';
 import Taches from './pages/Taches';
 import Famille from './pages/Famille';
 import { FamilyProvider } from './context/FamilyContext';
@@ -18,6 +19,7 @@ function App() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/courses" element={<Courses />} />
               <Route path="/agenda" element={<Agenda />} />
+              <Route path="/menus" element={<Menus />} />
               <Route path="/taches" element={<Taches />} />
               <Route path="/famille" element={<Famille />} />
             </Routes>

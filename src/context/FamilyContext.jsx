@@ -21,15 +21,53 @@ export const SHOPPING_CATEGORIES = [
   { key: 'autre', label: 'Autre', emoji: '🛒' },
 ];
 
+// Jours de la semaine (pour le planning des menus)
+export const WEEK_DAYS = [
+  { key: 'lundi', label: 'Lundi' },
+  { key: 'mardi', label: 'Mardi' },
+  { key: 'mercredi', label: 'Mercredi' },
+  { key: 'jeudi', label: 'Jeudi' },
+  { key: 'vendredi', label: 'Vendredi' },
+  { key: 'samedi', label: 'Samedi' },
+  { key: 'dimanche', label: 'Dimanche' },
+];
+
+export const RECURRENCES = {
+  none: 'Une fois',
+  quotidienne: 'Chaque jour',
+  hebdomadaire: 'Chaque semaine',
+};
+
 const defaultData = {
   members: [
-    { id: 'm1', name: 'Maman', role: 'Parent', color: '#ec4899', emoji: '👩', birthdate: '' },
-    { id: 'm2', name: 'Papa', role: 'Parent', color: '#3b82f6', emoji: '👨', birthdate: '' },
+    { id: 'm1', name: 'Laurène', role: 'Parent', color: '#ec4899', emoji: '👩', birthdate: '' },
+    { id: 'm2', name: 'Theo', role: 'Enfant', color: '#3b82f6', emoji: '👦', birthdate: '' },
+    { id: 'm3', name: 'Lilou', role: 'Enfant', color: '#f59e0b', emoji: '👧', birthdate: '' },
   ],
   shopping: [],
   events: [],
   todos: [],
+  menus: {}, // { lundi: { midi: {dish, ingredients}, soir: {dish, ingredients} }, ... }
 };
+
+const todayStr = () => new Date().toISOString().slice(0, 10);
+
+// Lundi de la semaine en cours (pour la récurrence hebdomadaire)
+function weekStartStr() {
+  const d = new Date();
+  const day = (d.getDay() + 6) % 7; // 0 = lundi
+  d.setDate(d.getDate() - day);
+  return d.toISOString().slice(0, 10);
+}
+
+// Une tâche récurrente est "faite" seulement pour la période en cours
+export function isTaskDone(t) {
+  if (!t.recurrence || t.recurrence === 'none') return t.done;
+  if (!t.lastDone) return false;
+  if (t.recurrence === 'quotidienne') return t.lastDone === todayStr();
+  if (t.recurrence === 'hebdomadaire') return t.lastDone >= weekStartStr();
+  return t.done;
+}
 
 function load() {
   try {
@@ -87,13 +125,52 @@ export function FamilyProvider({ children }) {
 
   // --- To-do ---
   const addTodo = (t) =>
-    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', ...t }, ...list]);
+    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', recurrence: 'none', lastDone: '', ...t }, ...list]);
   const toggleTodo = (id) =>
-    update('todos', (list) => list.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+    update('todos', (list) => list.map((t) => {
+      if (t.id !== id) return t;
+      // Tâche récurrente : on marque/démarque la période en cours via lastDone
+      if (t.recurrence && t.recurrence !== 'none') {
+        return { ...t, lastDone: isTaskDone(t) ? '' : todayStr() };
+      }
+      return { ...t, done: !t.done };
+    }));
   const updateTodo = (id, patch) =>
     update('todos', (list) => list.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   const removeTodo = (id) =>
     update('todos', (list) => list.filter((t) => t.id !== id));
+
+  // --- Menus de la semaine ---
+  const setMeal = (dayKey, moment, patch) =>
+    update('menus', (menus) => {
+      const day = menus[dayKey] || {};
+      const meal = { dish: '', ingredients: '', ...day[moment], ...patch };
+      return { ...menus, [dayKey]: { ...day, [moment]: meal } };
+    });
+  const clearMenus = () => update('menus', () => ({}));
+
+  // Ajoute à la liste de courses tous les ingrédients des menus (sans doublon)
+  const generateShoppingFromMenus = () => {
+    const existing = new Set(data.shopping.map((i) => i.name.trim().toLowerCase()));
+    const toAdd = [];
+    Object.values(data.menus).forEach((day) => {
+      Object.values(day || {}).forEach((meal) => {
+        (meal?.ingredients || '')
+          .split(/[,\n]/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .forEach((name) => {
+            const key = name.toLowerCase();
+            if (!existing.has(key)) {
+              existing.add(key);
+              toAdd.push({ id: uid(), name, qty: 1, category: 'autre', done: false });
+            }
+          });
+      });
+    });
+    if (toAdd.length) update('shopping', (list) => [...toAdd, ...list]);
+    return toAdd.length;
+  };
 
   const memberById = (id) => data.members.find((m) => m.id === id);
 
@@ -104,6 +181,7 @@ export function FamilyProvider({ children }) {
     addShopping, toggleShopping, removeShopping, clearShoppingDone,
     addEvent, updateEvent, removeEvent,
     addTodo, toggleTodo, updateTodo, removeTodo,
+    setMeal, clearMenus, generateShoppingFromMenus,
   };
 
   return <FamilyContext.Provider value={value}>{children}</FamilyContext.Provider>;
