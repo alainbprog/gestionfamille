@@ -1,24 +1,32 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import CategoryPage from './pages/CategoryPage';
-import CartPage from './pages/CartPage';
-import { CartProvider } from './context/CartContext';
+import Dashboard from './pages/Dashboard';
+import Courses from './pages/Courses';
+import Agenda from './pages/Agenda';
+import Menus from './pages/Menus';
+import Taches from './pages/Taches';
+import Famille from './pages/Famille';
+import { FamilyProvider } from './context/FamilyContext';
 
 function App() {
   return (
-    <CartProvider>
+    <FamilyProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-50 text-gray-800">
           <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/category/:category" element={<CategoryPage />} />
-            <Route path="/panier" element={<CartPage />} />
-          </Routes>
+          <main className="max-w-5xl mx-auto px-4 pt-20 pb-24 sm:pb-10">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/agenda" element={<Agenda />} />
+              <Route path="/menus" element={<Menus />} />
+              <Route path="/taches" element={<Taches />} />
+              <Route path="/famille" element={<Famille />} />
+            </Routes>
+          </main>
         </div>
       </Router>
-    </CartProvider>
+    </FamilyProvider>
   );
 }
 
