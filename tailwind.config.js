@@ -5,14 +5,18 @@ export default {
     extend: {
       fontFamily: {
         sans: ['Nunito', 'Inter', 'system-ui', 'sans-serif'],
+        script: ['Caveat', 'cursive'],
       },
       colors: {
+        cream: '#f6f2ea',
+        ink: '#4a4a42',
         brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
+          50: '#eef4ec',
+          100: '#dcebd4',
+          200: '#c4dcb8',
+          500: '#86ac6f',
+          600: '#6f9a58',
+          700: '#587c45',
         },
       },
     },

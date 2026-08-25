@@ -1,150 +1,173 @@
-import { Link } from 'react-router-dom';
-import { ShoppingCart, CalendarDays, ListTodo, Users, ArrowRight, Cake, MapPin } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bell, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useFamily, isTaskDone } from '../context/FamilyContext';
-import { MemberChip, Avatar } from '../components/MemberBadge';
+import AppTile from '../components/AppTile';
+import { Avatar } from '../components/MemberBadge';
 
-const todayStr = () => new Date().toISOString().slice(0, 10);
+const DAY_LETTERS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const PILL_COLORS = ['#8bb174', '#c39bd8', '#e79aad', '#7fb0d8', '#d98b8b', '#e0b877'];
 
-function greeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Bonjour';
-  if (h < 18) return 'Bon après-midi';
-  return 'Bonsoir';
-}
+const iso = (d) => d.toISOString().slice(0, 10);
 
-function nextBirthday(members) {
-  const now = new Date();
-  const list = members
-    .filter((m) => m.birthdate)
-    .map((m) => {
-      const b = new Date(m.birthdate + 'T00:00:00');
-      const next = new Date(now.getFullYear(), b.getMonth(), b.getDate());
-      if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) next.setFullYear(now.getFullYear() + 1);
-      return { m, days: Math.round((next - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000) };
-    })
-    .sort((a, b) => a.days - b.days);
-  return list[0];
-}
-
-function StatCard({ to, icon: Icon, label, value, sub, color }) {
-  return (
-    <Link to={to} className="card p-4 hover:shadow-md transition flex items-center gap-3">
-      <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: color + '20', color }}>
-        <Icon size={24} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-2xl font-extrabold leading-none">{value}</p>
-        <p className="text-sm font-bold text-gray-600">{label}</p>
-        {sub && <p className="text-xs text-gray-400 truncate">{sub}</p>}
-      </div>
-    </Link>
-  );
+function startOfWeek(base) {
+  const d = new Date(base);
+  const dow = (d.getDay() + 6) % 7; // 0 = lundi
+  d.setDate(d.getDate() - dow);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 export default function Dashboard() {
-  const { shopping, events, todos, members, memberById } = useFamily();
+  const { shopping, events, todos, members, memberById, notes, recipes, birthdays, addNote } = useFamily();
+  const navigate = useNavigate();
+  const [idea, setIdea] = useState('');
+  const [weekOffset, setWeekOffset] = useState(0);
 
+  const today = new Date();
+  const todayIso = iso(today);
   const shoppingLeft = shopping.filter((i) => !i.done).length;
-  const todosLeft = todos.filter((t) => !isTaskDone(t));
-  const today = todayStr();
-  const todayEvents = events.filter((e) => e.date === today).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-  const upcoming = [...events].filter((e) => e.date > today).sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)).slice(0, 3);
-  const bday = nextBirthday(members);
+  const todosLeft = todos.filter((t) => !isTaskDone(t)).length;
+  const todayEvents = events.filter((e) => e.date === todayIso).length;
+
+  // Anniversaires à venir (membres + liste additionnelle)
+  const annivCount = [...members.filter((m) => m.birthdate), ...birthdays].length;
+
+  // Semaine affichée
+  const weekBase = new Date(today);
+  weekBase.setDate(weekBase.getDate() + weekOffset * 7);
+  const monday = startOfWeek(weekBase);
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+  const monthLabel = `${MONTHS[weekDays[3].getMonth()]} ${weekDays[3].getFullYear()}`;
+
+  const eventsOn = (d) =>
+    events
+      .filter((e) => e.date === iso(d))
+      .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
+  const pillColor = (e, i) => {
+    const m = e.memberId && memberById(e.memberId);
+    return m ? m.color : PILL_COLORS[i % PILL_COLORS.length];
+  };
+
+  const submitIdea = (e) => {
+    e.preventDefault();
+    if (!idea.trim()) return;
+    addNote(idea.trim());
+    setIdea('');
+    navigate('/notes');
+  };
+
+  const firstMember = members[0];
+
+  const tiles = [
+    { key: 'courses', label: 'Courses', to: '/courses', emoji: '🛒', bg: '#cbe6d6', badge: shoppingLeft },
+    { key: 'recettes', label: 'Recettes', to: '/recettes', emoji: '👩‍🍳', bg: '#fbe7b3', badge: recipes.length },
+    { key: 'bienetre', label: 'Bien-être', to: '/bien-etre', emoji: '🧘‍♀️', bg: '#bfe0d0' },
+    { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2' },
+    { key: 'calendrier', label: 'Calendrier', to: '/agenda', emoji: '📅', bg: '#fbe7b3', badge: todayEvents },
+    { key: 'menu', label: 'Menu', to: '/menus', emoji: '🍽️', bg: '#f3c6bf' },
+    { key: 'anniv', label: 'Anniversaires', to: '/anniversaires', emoji: '🎂', bg: '#d6e6f2', badge: annivCount },
+    { key: 'notes', label: 'Notes', to: '/notes', emoji: '📝', bg: '#f6c9d3', badge: notes.length },
+    { key: 'taches', label: 'Tâches', to: '/taches', emoji: '✅', bg: '#cbe6d6', badge: todosLeft },
+  ];
 
   return (
-    <div>
-      <header className="mb-6">
-        <h1 className="text-3xl font-extrabold">{greeting()} 👋</h1>
-        <p className="text-gray-500 mt-1 capitalize">
-          {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-      </header>
-
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <StatCard to="/courses" icon={ShoppingCart} label="Courses" value={shoppingLeft} sub="articles à acheter" color="#10b981" />
-        <StatCard to="/agenda" icon={CalendarDays} label="RDV du jour" value={todayEvents.length} sub="rendez-vous" color="#6366f1" />
-        <StatCard to="/taches" icon={ListTodo} label="Tâches" value={todosLeft.length} sub="à faire" color="#f59e0b" />
-        <StatCard to="/famille" icon={Users} label="Famille" value={members.length} sub="membres" color="#ec4899" />
+    <div className="space-y-5">
+      {/* En-tête */}
+      <div className="flex items-center justify-between pt-1">
+        <span className="script text-3xl text-brand-600 leading-none">Tribu</span>
+        <div className="flex items-center gap-3">
+          <Link to="/agenda" className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-ink" aria-label="Agenda">
+            <Bell size={18} />
+          </Link>
+          <Link to="/famille" aria-label="Famille">
+            <Avatar member={firstMember} size={36} />
+          </Link>
+        </div>
       </div>
 
-      {/* Anniversaire à venir */}
-      {bday && bday.days <= 30 && (
-        <div className="card p-4 mb-6 flex items-center gap-3 bg-gradient-to-r from-pink-50 to-brand-50 border-pink-100">
-          <Cake className="text-pink-500 shrink-0" size={28} />
-          <p className="text-sm font-semibold text-gray-700">
-            {bday.days === 0
-              ? <>C'est l'anniversaire de <b>{bday.m.name}</b> aujourd'hui ! 🎉</>
-              : <>Anniversaire de <b>{bday.m.name}</b> dans <b>{bday.days} jour{bday.days > 1 ? 's' : ''}</b> 🎂</>}
-          </p>
+      {/* Salutation */}
+      <div>
+        <h1 className="text-3xl font-extrabold text-ink flex items-baseline gap-2 flex-wrap">
+          <span className="capitalize">{today.toLocaleDateString('fr-FR', { weekday: 'long' })}</span>
+          <span className="script text-brand-600 text-4xl">{today.getDate()} {MONTHS[today.getMonth()]}</span>
+        </h1>
+        <div className="inline-flex items-center gap-2 mt-1 text-ink/70 font-semibold">
+          <Avatar member={firstMember} size={22} />
+          <span>Chez nous</span>
         </div>
-      )}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Programme du jour */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-extrabold text-lg">Aujourd'hui</h2>
-            <Link to="/agenda" className="text-sm font-bold text-brand-600 flex items-center gap-1">Agenda <ArrowRight size={14} /></Link>
+      {/* Barre d'idées → note rapide */}
+      <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2">
+        <Sparkles size={18} className="text-brand-500 shrink-0" />
+        <input
+          className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
+          placeholder="Une idée, une note à garder…"
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+        />
+        <button type="submit" className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 active:scale-95" aria-label="Enregistrer">
+          <Send size={15} />
+        </button>
+      </form>
+
+      {/* Bande calendrier de la semaine */}
+      <div className="card p-3">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <span className="font-extrabold text-ink capitalize text-sm">{monthLabel}</span>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setWeekOffset((o) => o - 1)} className="w-7 h-7 rounded-full hover:bg-black/5 flex items-center justify-center" aria-label="Semaine précédente"><ChevronLeft size={16} /></button>
+            <button onClick={() => setWeekOffset((o) => o + 1)} className="w-7 h-7 rounded-full hover:bg-black/5 flex items-center justify-center" aria-label="Semaine suivante"><ChevronRight size={16} /></button>
           </div>
-          {todayEvents.length === 0 ? (
-            <div className="card p-6 text-center text-gray-400 text-sm">Aucun rendez-vous aujourd'hui 🎈</div>
-          ) : (
-            <ul className="space-y-2">
-              {todayEvents.map((e) => (
-                <li key={e.id} className="card p-3.5 flex items-center gap-3">
-                  <div className="text-center bg-brand-50 text-brand-700 rounded-lg px-2.5 py-1.5 font-extrabold text-sm min-w-[52px]">
-                    {e.time || '—'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold truncate">{e.title}</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
-                      {e.location && <span className="inline-flex items-center gap-1"><MapPin size={12} />{e.location}</span>}
-                      {e.memberId && <MemberChip member={memberById(e.memberId)} />}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {weekDays.map((d, i) => {
+            const isToday = iso(d) === todayIso;
+            const dayEvents = eventsOn(d);
+            return (
+              <button
+                key={i}
+                onClick={() => navigate('/agenda')}
+                className="flex flex-col items-center gap-1 pt-1 pb-1 rounded-xl hover:bg-black/[0.03] transition"
+              >
+                <span className="text-[10px] font-bold text-ink/40">{DAY_LETTERS[i]}</span>
+                <span className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-extrabold ${isToday ? 'bg-brand-600 text-white' : 'text-ink'}`}>
+                  {d.getDate()}
+                </span>
+                <div className="w-full space-y-0.5 mt-0.5">
+                  {dayEvents.slice(0, 2).map((e, j) => (
+                    <div
+                      key={e.id}
+                      className="text-[8px] leading-tight font-bold rounded px-1 py-0.5 truncate"
+                      style={{ backgroundColor: pillColor(e, j) + '33', color: pillColor(e, j) }}
+                      title={e.title}
+                    >
+                      {e.title}
                     </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  ))}
+                  {dayEvents.length > 2 && (
+                    <div className="text-[8px] text-ink/40 font-bold text-center">+{dayEvents.length - 2}</div>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-          {upcoming.length > 0 && (
-            <div className="mt-4">
-              <h3 className="text-xs font-extrabold text-gray-400 uppercase tracking-wide mb-2">Prochainement</h3>
-              <ul className="space-y-1.5">
-                {upcoming.map((e) => (
-                  <li key={e.id} className="flex items-center gap-2 text-sm text-gray-600">
-                    <span className="text-gray-400 font-semibold w-16 shrink-0">
-                      {new Date(e.date + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-                    </span>
-                    <span className="font-semibold truncate">{e.title}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </section>
-
-        {/* Tâches prioritaires */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-extrabold text-lg">À faire</h2>
-            <Link to="/taches" className="text-sm font-bold text-brand-600 flex items-center gap-1">Tout voir <ArrowRight size={14} /></Link>
-          </div>
-          {todosLeft.length === 0 ? (
-            <div className="card p-6 text-center text-gray-400 text-sm">Rien à faire, profitez-en ! ☕</div>
-          ) : (
-            <ul className="space-y-2">
-              {todosLeft.slice(0, 5).map((t) => (
-                <li key={t.id} className="card p-3.5 flex items-center gap-3">
-                  <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${t.priority === 'haute' ? 'bg-red-500' : t.priority === 'basse' ? 'bg-gray-300' : 'bg-blue-500'}`} />
-                  <span className="flex-1 font-semibold truncate">{t.text}</span>
-                  {t.memberId && <Avatar member={memberById(t.memberId)} size={28} />}
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+      {/* Mes applications */}
+      <div>
+        <h2 className="font-extrabold text-ink text-lg mb-3 px-1">Mes applications</h2>
+        <div className="grid grid-cols-3 gap-3">
+          {tiles.map((t) => <AppTile key={t.key} {...t} />)}
+        </div>
       </div>
     </div>
   );

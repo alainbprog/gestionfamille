@@ -53,6 +53,10 @@ const defaultData = {
   events: [],
   todos: [],
   menus: {}, // { lundi: { midi: {dish, ingredients}, soir: {dish, ingredients} }, ... }
+  notes: [], // { id, text, createdAt }
+  recipes: [], // { id, title, ingredients, steps }
+  birthdays: [], // { id, name, date } — anniversaires hors membres
+  wellbeing: {}, // { 'YYYY-MM-DD': { water, mood } }
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
@@ -229,6 +233,42 @@ export function FamilyProvider({ children }) {
     return toAdd.length;
   };
 
+  // --- Notes ---
+  const addNote = (text) =>
+    update('notes', (list) => [{ id: uid(), text, createdAt: Date.now() }, ...list]);
+  const removeNote = (id) => update('notes', (list) => list.filter((n) => n.id !== id));
+
+  // --- Recettes ---
+  const addRecipe = (r) =>
+    update('recipes', (list) => [{ id: uid(), title: '', ingredients: '', steps: '', ...r }, ...list]);
+  const removeRecipe = (id) => update('recipes', (list) => list.filter((r) => r.id !== id));
+  // Ajoute les ingrédients d'une recette à la liste de courses (sans doublon)
+  const addRecipeToShopping = (recipe) => {
+    const existing = new Set(data.shopping.map((i) => i.name.trim().toLowerCase()));
+    const toAdd = [];
+    (recipe.ingredients || '')
+      .split(/[,\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .forEach((name) => {
+        if (!existing.has(name.toLowerCase())) {
+          existing.add(name.toLowerCase());
+          toAdd.push({ id: uid(), name, qty: 1, category: 'autre', done: false });
+        }
+      });
+    if (toAdd.length) update('shopping', (list) => [...toAdd, ...list]);
+    return toAdd.length;
+  };
+
+  // --- Anniversaires (hors membres) ---
+  const addBirthday = (b) =>
+    update('birthdays', (list) => [...list, { id: uid(), name: '', date: '', ...b }]);
+  const removeBirthday = (id) => update('birthdays', (list) => list.filter((b) => b.id !== id));
+
+  // --- Bien-être (par jour) ---
+  const setWellbeing = (date, patch) =>
+    update('wellbeing', (w) => ({ ...w, [date]: { water: 0, mood: '', ...w[date], ...patch } }));
+
   // --- Réinitialisation complète ---
   const resetData = () => {
     setData(JSON.parse(JSON.stringify(defaultData)));
@@ -312,6 +352,10 @@ export function FamilyProvider({ children }) {
     addEvent, updateEvent, removeEvent,
     addTodo, toggleTodo, updateTodo, removeTodo,
     setMeal, clearMenus, generateShoppingFromMenus,
+    addNote, removeNote,
+    addRecipe, removeRecipe, addRecipeToShopping,
+    addBirthday, removeBirthday,
+    setWellbeing,
     resetData,
     sync, connectSync, disconnectSync,
   };
