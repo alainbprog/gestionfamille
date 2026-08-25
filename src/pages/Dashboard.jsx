@@ -81,7 +81,7 @@ export default function Dashboard() {
     <div className="space-y-5">
       {/* En-tête */}
       <div className="flex items-center justify-between pt-1">
-        <span className="script text-3xl text-brand-600 leading-none">Tribu</span>
+        <span className="script text-3xl text-brand-600 leading-none">Planning familial</span>
         <div className="flex items-center gap-3">
           <Link to="/agenda" className="w-9 h-9 rounded-full bg-white shadow-sm flex items-center justify-center text-ink" aria-label="Agenda">
             <Bell size={18} />
