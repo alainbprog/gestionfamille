@@ -5,6 +5,7 @@ const FamilyContext = createContext();
 const STORAGE_KEY = 'tribu-data-v1';
 const REV_KEY = 'tribu-rev-v1';
 const SYNC_KEY = 'tribu-sync-v1';
+const RECIPES_SEED_KEY = 'tribu-recipes-seed-v1';
 const SYNC_URL = '/.netlify/functions/sync';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -41,6 +42,59 @@ export const RECURRENCES = {
   hebdomadaire: 'Chaque semaine',
 };
 
+// Types de repas (pour classer les recettes sur la journée)
+export const MEAL_TYPES = [
+  { key: 'petit-dej', label: 'Petit-déj', emoji: '🌅' },
+  { key: 'dejeuner', label: 'Déjeuner', emoji: '🍽️' },
+  { key: 'diner', label: 'Dîner', emoji: '🌙' },
+];
+
+// Bibliothèque de recettes simples, à base de légumes, pour les 3 repas.
+// Amorcée une fois pour chaque utilisateur (voir load()).
+export const DEFAULT_RECIPES = [
+  // --- Petit-déjeuner ---
+  { id: 'seed-b01', meal: 'petit-dej', title: 'Smoothie vert épinards-banane', ingredients: 'épinards frais, banane, pomme, lait ou lait végétal', steps: "Mixez une poignée d'épinards avec la banane, la pomme et un verre de lait jusqu'à obtenir une texture lisse." },
+  { id: 'seed-b02', meal: 'petit-dej', title: 'Œufs brouillés aux épinards et tomates', ingredients: 'œufs, épinards, tomate, beurre, sel, poivre', steps: 'Faites revenir les épinards et la tomate coupée, ajoutez les œufs battus et remuez à feu doux.' },
+  { id: 'seed-b03', meal: 'petit-dej', title: 'Tartine avocat-tomate', ingredients: 'pain complet, avocat, tomate, citron, sel', steps: "Écrasez l'avocat avec un filet de citron, étalez sur le pain grillé et garnissez de rondelles de tomate." },
+  { id: 'seed-b04', meal: 'petit-dej', title: 'Galettes de courgette', ingredients: 'courgette, œuf, farine, oignon, sel, poivre', steps: "Râpez la courgette, mélangez avec l'œuf, la farine et l'oignon, puis faites dorer de petites galettes à la poêle." },
+  { id: 'seed-b05', meal: 'petit-dej', title: 'Muffins salés courgette-carotte', ingredients: 'courgette, carotte, œufs, farine, levure, fromage râpé', steps: 'Râpez les légumes, mélangez avec les œufs, la farine, la levure et le fromage, puis faites cuire 20 min au four (180°C).' },
+  { id: 'seed-b06', meal: 'petit-dej', title: 'Omelette aux champignons', ingredients: 'œufs, champignons, persil, beurre, sel', steps: "Faites revenir les champignons, versez les œufs battus et pliez l'omelette une fois prise." },
+  { id: 'seed-b07', meal: 'petit-dej', title: 'Pancakes à la patate douce', ingredients: 'patate douce, œufs, farine, lait, levure', steps: 'Écrasez la patate douce cuite, mélangez à la pâte à pancakes et faites cuire de petites crêpes épaisses.' },
+  { id: 'seed-b08', meal: 'petit-dej', title: 'Bol fromage frais, tomates & concombre', ingredients: 'fromage blanc, tomate, concombre, ciboulette, sel', steps: 'Mélangez le fromage blanc avec les dés de tomate et de concombre et parsemez de ciboulette.' },
+  { id: 'seed-b09', meal: 'petit-dej', title: 'Smoothie carotte-orange-gingembre', ingredients: 'carotte, orange, gingembre, eau', steps: "Mixez la carotte avec le jus d'orange, un peu de gingembre et de l'eau." },
+  { id: 'seed-b10', meal: 'petit-dej', title: 'Wrap œuf-épinards', ingredients: 'tortilla, œufs, épinards, tomate, fromage', steps: "Faites une omelette avec les épinards, déposez-la sur la tortilla avec la tomate et le fromage, puis roulez." },
+
+  // --- Déjeuner ---
+  { id: 'seed-l01', meal: 'dejeuner', title: 'Salade de lentilles, carottes et concombre', ingredients: "lentilles, carotte, concombre, oignon rouge, huile d'olive, vinaigre", steps: "Mélangez les lentilles cuites avec les carottes et le concombre en dés, assaisonnez d'huile et de vinaigre." },
+  { id: 'seed-l02', meal: 'dejeuner', title: 'Soupe de courgettes', ingredients: 'courgette, oignon, pomme de terre, bouillon, crème', steps: 'Faites cuire les légumes dans le bouillon puis mixez avec un peu de crème.' },
+  { id: 'seed-l03', meal: 'dejeuner', title: 'Poêlée de légumes', ingredients: "courgette, poivron, oignon, tomate, huile d'olive, herbes", steps: "Faites revenir tous les légumes coupés à la poêle avec un filet d'huile et des herbes." },
+  { id: 'seed-l04', meal: 'dejeuner', title: 'Gratin de courgettes', ingredients: 'courgette, crème, fromage râpé, ail, sel', steps: 'Disposez les courgettes en tranches, nappez de crème et de fromage, gratinez 25 min au four.' },
+  { id: 'seed-l05', meal: 'dejeuner', title: 'Riz aux petits légumes', ingredients: 'riz, carotte, petits pois, maïs, oignon', steps: 'Faites cuire le riz, ajoutez les légumes revenus à la poêle et mélangez.' },
+  { id: 'seed-l06', meal: 'dejeuner', title: 'Buddha bowl quinoa-avocat', ingredients: 'quinoa, avocat, carotte, concombre, pois chiches, citron', steps: "Répartissez le quinoa cuit et les légumes dans un bol, ajoutez l'avocat et un filet de citron." },
+  { id: 'seed-l07', meal: 'dejeuner', title: 'Ratatouille express', ingredients: 'aubergine, courgette, poivron, tomate, oignon, ail', steps: "Faites mijoter tous les légumes coupés en dés 25 min avec un peu d'huile d'olive." },
+  { id: 'seed-l08', meal: 'dejeuner', title: 'Salade tomates-mozzarella', ingredients: "tomate, mozzarella, basilic, huile d'olive", steps: "Alternez les tranches de tomate et de mozzarella, parsemez de basilic et d'huile d'olive." },
+  { id: 'seed-l09', meal: 'dejeuner', title: 'Wok de brocoli et carottes', ingredients: 'brocoli, carotte, sauce soja, ail, sésame', steps: 'Faites sauter le brocoli et la carotte au wok, ajoutez la sauce soja et le sésame.' },
+  { id: 'seed-l10', meal: 'dejeuner', title: 'Purée de patate douce', ingredients: 'patate douce, lait, beurre, sel, muscade', steps: 'Faites cuire les patates douces, écrasez-les avec le lait et le beurre.' },
+  { id: 'seed-l11', meal: 'dejeuner', title: 'Taboulé de chou-fleur', ingredients: "chou-fleur, tomate, concombre, menthe, citron, huile d'olive", steps: 'Mixez le chou-fleur cru en semoule, mélangez avec les légumes coupés, la menthe et le citron.' },
+  { id: 'seed-l12', meal: 'dejeuner', title: 'Frittata aux légumes', ingredients: 'œufs, courgette, poivron, oignon, fromage', steps: 'Faites revenir les légumes, versez les œufs battus et laissez cuire à couvert puis au four.' },
+  { id: 'seed-l13', meal: 'dejeuner', title: 'Velouté de potiron', ingredients: 'potiron, oignon, pomme de terre, bouillon, crème', steps: 'Cuisez le potiron dans le bouillon puis mixez avec une pointe de crème.' },
+
+  // --- Dîner ---
+  { id: 'seed-d01', meal: 'diner', title: 'Soupe de légumes maison', ingredients: 'carotte, poireau, pomme de terre, courgette, oignon, bouillon', steps: 'Coupez les légumes, couvrez de bouillon, laissez cuire 30 min puis mixez.' },
+  { id: 'seed-d02', meal: 'diner', title: 'Gratin de chou-fleur', ingredients: 'chou-fleur, lait, farine, beurre, fromage râpé', steps: 'Cuisez le chou-fleur, nappez de béchamel et de fromage, gratinez au four 20 min.' },
+  { id: 'seed-d03', meal: 'diner', title: 'Curry de légumes au lait de coco', ingredients: 'carotte, courgette, pois chiches, lait de coco, curry, oignon', steps: 'Faites revenir les légumes, ajoutez le lait de coco et le curry, laissez mijoter 20 min.' },
+  { id: 'seed-d04', meal: 'diner', title: "Haricots verts à l'ail", ingredients: "haricots verts, ail, huile d'olive, persil, sel", steps: "Faites cuire les haricots verts puis poêlez-les avec l'ail et le persil." },
+  { id: 'seed-d05', meal: 'diner', title: 'Courgettes farcies au riz', ingredients: 'courgette, riz, tomate, oignon, fromage', steps: 'Évidez les courgettes, garnissez de riz cuit et de légumes, gratinez 25 min au four.' },
+  { id: 'seed-d06', meal: 'diner', title: 'Tian de légumes', ingredients: "courgette, tomate, aubergine, oignon, ail, huile d'olive, herbes de Provence", steps: "Disposez les légumes en rosace dans un plat, arrosez d'huile et enfournez 40 min." },
+  { id: 'seed-d07', meal: 'diner', title: 'Dahl de lentilles corail', ingredients: 'lentilles corail, épinards, tomate, oignon, lait de coco, curcuma', steps: 'Cuisez les lentilles avec la tomate et les épices, ajoutez les épinards et le lait de coco en fin de cuisson.' },
+  { id: 'seed-d08', meal: 'diner', title: 'Poireaux à la béchamel', ingredients: 'poireau, lait, farine, beurre, muscade', steps: 'Faites fondre les poireaux, nappez de béchamel légère et faites gratiner.' },
+  { id: 'seed-d09', meal: 'diner', title: 'Tarte fine aux légumes', ingredients: 'pâte feuilletée, courgette, tomate, oignon, fromage, herbes', steps: 'Étalez la pâte, disposez les légumes en fines tranches, parsemez de fromage et cuisez 25 min.' },
+  { id: 'seed-d10', meal: 'diner', title: 'Minestrone', ingredients: 'carotte, courgette, haricots blancs, tomate, pâtes, oignon, bouillon', steps: 'Faites mijoter les légumes et les haricots dans le bouillon, ajoutez les pâtes en fin de cuisson.' },
+  { id: 'seed-d11', meal: 'diner', title: "Poêlée d'épinards et pois chiches", ingredients: "épinards, pois chiches, ail, tomate, huile d'olive, cumin", steps: "Faites revenir l'ail, ajoutez les pois chiches, les épinards et la tomate, assaisonnez de cumin." },
+  { id: 'seed-d12', meal: 'diner', title: 'Chou-fleur rôti au four', ingredients: "chou-fleur, huile d'olive, paprika, ail, sel", steps: "Coupez le chou-fleur en bouquets, enrobez d'huile et d'épices, rôtissez 30 min à 200°C." },
+  { id: 'seed-d13', meal: 'diner', title: 'Ragoût de pois chiches et tomates', ingredients: 'pois chiches, tomate, oignon, poivron, ail, paprika', steps: 'Faites mijoter les pois chiches avec la tomate, le poivron et les épices 20 min.' },
+];
+
 const defaultData = {
   members: [
     { id: 'm1', name: 'Alain', role: 'Parent', color: '#3b82f6', emoji: '👨', birthdate: '' },
@@ -54,7 +108,7 @@ const defaultData = {
   todos: [],
   menus: {}, // { lundi: { midi: {dish, ingredients}, soir: {dish, ingredients} }, ... }
   notes: [], // { id, text, createdAt }
-  recipes: [], // { id, title, ingredients, steps }
+  recipes: DEFAULT_RECIPES, // { id, title, ingredients, steps, meal }
   birthdays: [], // { id, name, date } — anniversaires hors membres
   wellbeing: {}, // { 'YYYY-MM-DD': { water, mood } }
 };
@@ -78,11 +132,26 @@ export function isTaskDone(t) {
   return t.done;
 }
 
+// Amorce une fois la bibliothèque de recettes, sans écraser les recettes déjà
+// créées par l'utilisateur (dé-doublonnage par titre).
+function seedRecipes(base) {
+  try {
+    if (localStorage.getItem(RECIPES_SEED_KEY)) return base;
+  } catch {
+    return base; // stockage indisponible : on n'amorce pas
+  }
+  const existing = new Set((base.recipes || []).map((r) => (r.title || '').trim().toLowerCase()));
+  const toAdd = DEFAULT_RECIPES.filter((r) => !existing.has(r.title.trim().toLowerCase()));
+  const next = { ...base, recipes: [...toAdd, ...(base.recipes || [])] };
+  try { localStorage.setItem(RECIPES_SEED_KEY, '1'); } catch { /* ignore */ }
+  return next;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultData;
-    return { ...defaultData, ...JSON.parse(raw) };
+    const base = raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData };
+    return seedRecipes(base);
   } catch {
     return defaultData;
   }
@@ -240,7 +309,7 @@ export function FamilyProvider({ children }) {
 
   // --- Recettes ---
   const addRecipe = (r) =>
-    update('recipes', (list) => [{ id: uid(), title: '', ingredients: '', steps: '', ...r }, ...list]);
+    update('recipes', (list) => [{ id: uid(), title: '', ingredients: '', steps: '', meal: '', ...r }, ...list]);
   const removeRecipe = (id) => update('recipes', (list) => list.filter((r) => r.id !== id));
   // Ajoute les ingrédients d'une recette à la liste de courses (sans doublon)
   const addRecipeToShopping = (recipe) => {
