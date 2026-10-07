@@ -69,6 +69,7 @@ export default function Dashboard() {
     { key: 'courses', label: 'Courses', to: '/courses', emoji: '🛒', bg: '#cbe6d6', badge: shoppingLeft },
     { key: 'recettes', label: 'Recettes', to: '/recettes', emoji: '👩‍🍳', bg: '#fbe7b3', badge: recipes.length },
     { key: 'frigo', label: 'Mon frigo', to: '/frigo', emoji: '🧊', bg: '#cfe8f3' },
+    { key: 'calories', label: 'Calories', to: '/calories', emoji: '🍽️', bg: '#f3d9c6' },
     { key: 'bienetre', label: 'Bien-être', to: '/bien-etre', emoji: '🧘‍♀️', bg: '#bfe0d0' },
     { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2' },
     { key: 'calendrier', label: 'Calendrier', to: '/agenda', emoji: '📅', bg: '#fbe7b3', badge: todayEvents },

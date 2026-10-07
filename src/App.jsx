@@ -9,6 +9,7 @@ import Famille from './pages/Famille';
 import Notes from './pages/Notes';
 import Recettes from './pages/Recettes';
 import Frigo from './pages/Frigo';
+import Calories from './pages/Calories';
 import Routines from './pages/Routines';
 import Anniversaires from './pages/Anniversaires';
 import BienEtre from './pages/BienEtre';
@@ -46,6 +47,7 @@ function App() {
             <Route path="/notes" element={<Notes />} />
             <Route path="/recettes" element={<Recettes />} />
             <Route path="/frigo" element={<Frigo />} />
+            <Route path="/calories" element={<Calories />} />
             <Route path="/routines" element={<Routines />} />
             <Route path="/anniversaires" element={<Anniversaires />} />
             <Route path="/bien-etre" element={<BienEtre />} />

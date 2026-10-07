@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Compteur de calories</title>
+<style>
+  :root{
+    --vert:#16a34a; --vert-fonce:#15803d; --vert-clair:#dcfce7;
+    --bg:#f6f7f9; --card:#ffffff; --texte:#1f2937; --gris:#6b7280;
+    --bord:#e5e7eb; --rouge:#dc2626; --orange:#ea580c;
+    --gluc:#3b82f6; --prot:#ef4444; --lip:#f59e0b; --fib:#22c55e; --eau:#06b6d4;
+    --ombre:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--texte);
+    padding-bottom:calc(90px + env(safe-area-inset-bottom));
+    -webkit-font-smoothing:antialiased;
+  }
+  header{
+    background:linear-gradient(135deg,var(--vert),var(--vert-fonce));
+    color:#fff; padding:calc(18px + env(safe-area-inset-top)) 20px 22px;
+    border-radius:0 0 24px 24px; box-shadow:0 4px 18px rgba(22,163,74,.25);
+  }
+  header h1{margin:0 0 16px; font-size:20px; font-weight:700; display:flex; align-items:center; gap:8px;}
+  .ring-wrap{display:flex; align-items:center; gap:18px;}
+  .ring{position:relative; width:104px; height:104px; flex:0 0 auto;}
+  .ring svg{transform:rotate(-90deg);}
+  .ring .val{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .ring .val b{font-size:24px; line-height:1;}
+  .ring .val span{font-size:10px; opacity:.85; margin-top:3px;}
+  .infos{flex:1;}
+  .infos .ligne{display:flex; justify-content:space-between; font-size:14px; padding:3px 0; opacity:.95;}
+  .infos .ligne b{font-weight:600;}
+  .restant{margin-top:8px; font-size:15px; font-weight:700; background:rgba(255,255,255,.18); padding:8px 12px; border-radius:12px; text-align:center;}
+
+  .container{padding:16px;}
+  .section-titre{font-size:13px; font-weight:700; color:var(--gris); text-transform:uppercase; letter-spacing:.04em; margin:4px 4px 10px;}
+  .carte{background:var(--card); border-radius:18px; padding:14px 14px 16px; box-shadow:var(--ombre); margin-bottom:16px;}
+  .carte h3{margin:0 0 12px; font-size:15px; font-weight:700; display:flex; align-items:center; gap:7px;}
+
+  /* Anneaux macros */
+  .macros{display:flex; justify-content:space-between; gap:6px;}
+  .macro{flex:1; display:flex; flex-direction:column; align-items:center; gap:5px;}
+  .macro .mring{position:relative; width:70px; height:70px;}
+  .macro .mring svg{transform:rotate(-90deg);}
+  .macro .mring .c{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800;}
+  .macro .mlabel{font-size:11px; font-weight:600; color:var(--gris); text-align:center; line-height:1.2;}
+  .macro .mgoal{font-size:10px; color:var(--gris);}
+  .macro.ok .mlabel{color:var(--vert-fonce);}
+
+  /* Hydratation */
+  .eau-haut{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
+  .eau-total{font-size:22px; font-weight:800;}
+  .eau-total small{font-size:13px; font-weight:600; color:var(--gris);}
+  .eau-badge{font-size:12px; font-weight:700; color:var(--eau); background:#cffafe; padding:5px 10px; border-radius:999px;}
+  .eau-badge.ok{color:#fff; background:var(--eau);}
+  .verres{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;}
+  .verre{width:38px; height:44px; border-radius:6px 6px 10px 10px; border:2px solid var(--eau); position:relative; overflow:hidden; cursor:pointer; background:#fff; transition:transform .1s;}
+  .verre:active{transform:scale(.9);}
+  .verre .rempli{position:absolute; left:0; right:0; bottom:0; background:var(--eau); height:0; transition:height .2s;}
+  .verre.plein .rempli{height:100%;}
+  .verre .em{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; z-index:1;}
+  .eau-btns{display:flex; gap:10px;}
+  .eau-btns button{flex:1; padding:11px; border-radius:12px; border:1px solid var(--eau); background:#fff; color:var(--eau); font-size:15px; font-weight:700; cursor:pointer;}
+  .eau-btns button.plus{background:var(--eau); color:#fff;}
+
+  /* Jeûne */
+  .jeune-live{text-align:center; padding:6px 0 4px;}
+  .jeune-timer{font-size:32px; font-weight:800; letter-spacing:.01em; color:#7c3aed; font-variant-numeric:tabular-nums;}
+  .jeune-sous{font-size:12px; color:var(--gris); margin-top:4px;}
+  .jeune-obj{margin-top:14px;}
+  .jeune-obj-haut{display:flex; justify-content:space-between; align-items:center; font-size:13px; margin-bottom:6px;}
+  .jeune-obj-label{color:var(--gris); cursor:pointer;}
+  .jeune-obj-label b{color:var(--texte); font-weight:700;}
+  .jeune-pct{font-weight:800; color:#7c3aed;}
+  .jeune-pct.ok{color:var(--vert-fonce);}
+  .jeune-bar{height:12px; background:var(--bord); border-radius:999px; overflow:hidden;}
+  .jeune-bar-fill{height:100%; width:0; border-radius:999px; background:linear-gradient(90deg,#7c3aed,#4f46e5); transition:width .5s ease, background .4s;}
+  .jeune-bar-fill.ok{background:linear-gradient(90deg,#16a34a,#22c55e);}
+  .jeune-reste{font-size:12px; color:var(--gris); margin-top:6px; text-align:center;}
+  .jeune-prec{margin-top:12px; padding-top:12px; border-top:1px solid var(--bord); font-size:14px; color:var(--texte); text-align:center;}
+  .jeune-prec .jp-detail{font-size:12px; color:var(--gris);}
+  .histo-chart{width:100%; overflow-x:auto;}
+  .histo-chart svg{display:block;}
+  .histo-legende{font-size:11px; color:var(--gris); text-align:center; margin-top:8px;}
+
+  .journal{display:flex; flex-direction:column; gap:10px;}
+  .item{background:var(--card); border-radius:16px; padding:12px 14px; box-shadow:var(--ombre); display:flex; align-items:center; gap:12px;}
+  .item .miniature{width:46px; height:46px; border-radius:12px; object-fit:cover; background:var(--vert-clair); flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:22px;}
+  .item .txt{flex:1; min-width:0;}
+  .item .txt .nom{font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .item .txt .det{font-size:12px; color:var(--gris); margin-top:2px;}
+  .item .txt .macdet{font-size:11px; color:var(--gris); margin-top:3px; display:flex; gap:8px; flex-wrap:wrap;}
+  .item .txt .macdet span b{font-weight:700;}
+  .item .kcal{font-weight:700; font-size:15px; color:var(--vert-fonce); white-space:nowrap;}
+  .item .suppr{background:none; border:none; color:var(--gris); font-size:20px; padding:4px 2px 4px 8px; cursor:pointer;}
+  .vide{text-align:center; color:var(--gris); padding:30px 20px; font-size:14px;}
+  .vide .emo{font-size:40px; display:block; margin-bottom:10px;}
+
+  .fab{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(20px + env(safe-area-inset-bottom)); background:var(--vert); color:#fff; border:none; padding:16px 26px; border-radius:999px; font-size:16px; font-weight:700; box-shadow:0 8px 24px rgba(22,163,74,.4); cursor:pointer; z-index:20; display:flex; align-items:center; gap:8px;}
+  .fab:active{transform:translateX(-50%) scale(.96);}
+
+  .overlay{position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30; opacity:0; pointer-events:none; transition:opacity .25s;}
+  .overlay.on{opacity:1; pointer-events:auto;}
+  .sheet{position:fixed; left:0; right:0; bottom:0; z-index:31; background:var(--bg); border-radius:24px 24px 0 0; transform:translateY(100%); transition:transform .28s cubic-bezier(.4,0,.2,1); max-height:92vh; display:flex; flex-direction:column; padding-bottom:env(safe-area-inset-bottom);}
+  .sheet.on{transform:translateY(0);}
+  .sheet .barre{width:40px; height:5px; background:#d1d5db; border-radius:3px; margin:10px auto 4px;}
+  .sheet-head{display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px;}
+  .sheet-head h2{margin:0; font-size:18px;}
+  .sheet-head .fermer{background:none; border:none; font-size:26px; color:var(--gris); cursor:pointer; line-height:1;}
+  .sheet-body{overflow-y:auto; padding:0 16px 20px; -webkit-overflow-scrolling:touch;}
+
+  .photo-zone{border:2px dashed var(--vert); border-radius:18px; background:var(--vert-clair); padding:22px; text-align:center; margin-bottom:16px; position:relative; overflow:hidden;}
+  .photo-zone .emo{font-size:34px;}
+  .photo-zone p{margin:8px 0 0; font-size:14px; color:var(--vert-fonce); font-weight:600;}
+  .photo-zone img{width:100%; max-height:200px; object-fit:cover; border-radius:12px; display:block;}
+  .photo-zone input{position:absolute; inset:0; opacity:0; width:100%; height:100%; cursor:pointer;}
+  .photo-refaire{margin-top:10px; font-size:13px; color:var(--vert-fonce); text-decoration:underline; background:none; border:none; cursor:pointer;}
+
+  .recherche{width:100%; padding:14px 16px; font-size:16px; border:1px solid var(--bord); border-radius:14px; background:var(--card); margin-bottom:12px; outline:none;}
+  .recherche:focus{border-color:var(--vert);}
+  .cat-tabs{display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; margin-bottom:4px; -webkit-overflow-scrolling:touch;}
+  .cat-tabs::-webkit-scrollbar{display:none;}
+  .cat-tab{flex:0 0 auto; padding:8px 14px; border-radius:999px; background:var(--card); border:1px solid var(--bord); font-size:13px; font-weight:600; color:var(--gris); cursor:pointer; white-space:nowrap;}
+  .cat-tab.on{background:var(--vert); color:#fff; border-color:var(--vert);}
+  .liste-alim{display:flex; flex-direction:column; gap:8px;}
+  .alim{background:var(--card); border:1px solid var(--bord); border-radius:14px; padding:12px 14px; display:flex; align-items:center; gap:12px; cursor:pointer;}
+  .alim:active{background:var(--vert-clair);}
+  .alim .ico{font-size:24px; width:34px; text-align:center; flex:0 0 auto;}
+  .alim .n{flex:1; font-weight:600; font-size:15px;}
+  .alim .k{font-size:12px; color:var(--gris); white-space:nowrap;}
+
+  .portion-alim{text-align:center; padding:8px 0 4px;}
+  .portion-alim .ico{font-size:44px;}
+  .portion-alim .n{font-size:19px; font-weight:700; margin-top:4px;}
+  .portion-alim .base{font-size:13px; color:var(--gris); margin-top:2px;}
+  .presets{display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin:18px 0;}
+  .preset{padding:9px 14px; border-radius:12px; border:1px solid var(--bord); background:var(--card); font-size:14px; font-weight:600; cursor:pointer;}
+  .preset.on{background:var(--vert); color:#fff; border-color:var(--vert);}
+  .grammes{display:flex; align-items:center; justify-content:center; gap:14px; margin:16px 0;}
+  .grammes button{width:48px; height:48px; border-radius:50%; border:1px solid var(--bord); background:var(--card); font-size:24px; font-weight:700; cursor:pointer; color:var(--vert-fonce);}
+  .grammes .champ{display:flex; align-items:baseline; gap:4px;}
+  .grammes input{width:90px; text-align:center; font-size:30px; font-weight:800; border:none; background:none; outline:none; color:var(--texte); -moz-appearance:textfield;}
+  .grammes input::-webkit-outer-spin-button,.grammes input::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .grammes .unite{font-size:16px; color:var(--gris);}
+  .calc-result{text-align:center; font-size:15px; color:var(--gris); margin-bottom:14px;}
+  .calc-result b{font-size:26px; color:var(--vert-fonce); display:block; margin-top:2px;}
+
+  /* Décompo macros dans la fiche portion */
+  .decompo{background:var(--card); border:1px solid var(--bord); border-radius:16px; padding:12px 12px 6px; margin-bottom:16px;}
+  .decompo .dtitre{font-size:12px; font-weight:700; color:var(--gris); text-transform:uppercase; letter-spacing:.03em; margin-bottom:10px; text-align:center;}
+  .decompo .drings{display:flex; justify-content:space-between; gap:6px;}
+  .decompo .dr{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .decompo .dr .mring{position:relative; width:60px; height:60px;}
+  .decompo .dr .mring svg{transform:rotate(-90deg);}
+  .decompo .dr .mring .c{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800;}
+  .decompo .dr .dl{font-size:10px; font-weight:600; color:var(--gris); text-align:center;}
+  .decompo .dr .dplus{font-size:10px; font-weight:700;}
+
+  .btn-principal{width:100%; padding:16px; background:var(--vert); color:#fff; border:none; border-radius:16px; font-size:17px; font-weight:700; cursor:pointer; box-shadow:0 4px 14px rgba(22,163,74,.3);}
+  .btn-principal:active{transform:scale(.98);}
+  .btn-second{width:100%; padding:14px; background:none; color:var(--gris); border:none; font-size:14px; cursor:pointer; margin-top:6px;}
+  .obj-edit{display:flex; align-items:center; gap:6px; cursor:pointer;}
+
+  /* Analyse IA */
+  .btn-ia{margin-top:12px; width:100%; padding:13px; border:none; border-radius:14px; font-size:15px; font-weight:700; color:#fff; cursor:pointer;
+    background:linear-gradient(135deg,#7c3aed,#4f46e5); box-shadow:0 4px 14px rgba(79,70,229,.35);}
+  .btn-ia:active{transform:scale(.98);}
+  .btn-ia:disabled{opacity:.6;}
+  .ia-sep{display:flex; align-items:center; gap:10px; color:var(--gris); font-size:12px; font-weight:600; margin:14px 0;}
+  .ia-sep::before,.ia-sep::after{content:""; flex:1; height:1px; background:var(--bord);}
+  .ia-load{text-align:center; padding:26px 16px;}
+  .ia-load .spin{width:44px; height:44px; border:4px solid var(--vert-clair); border-top-color:#4f46e5; border-radius:50%; margin:0 auto 14px; animation:tourne .8s linear infinite;}
+  @keyframes tourne{to{transform:rotate(360deg);}}
+  .ia-load p{margin:0; font-size:14px; color:var(--gris);}
+  .ia-erreur{background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:14px; padding:14px; font-size:14px; margin-bottom:12px;}
+  .ia-comment{background:var(--vert-clair); color:var(--vert-fonce); border-radius:14px; padding:12px 14px; font-size:14px; margin-bottom:14px;}
+  .res-item{background:var(--card); border:1px solid var(--bord); border-radius:16px; padding:12px 14px; margin-bottom:10px;}
+  .res-item.off{opacity:.45;}
+  .res-haut{display:flex; align-items:center; gap:12px;}
+  .res-haut .ico{font-size:26px;}
+  .res-haut .info{flex:1; min-width:0;}
+  .res-haut .info .n{font-weight:700; font-size:15px;}
+  .res-haut .info .c{font-size:11px; color:var(--gris); margin-top:2px;}
+  .res-haut .check{width:26px; height:26px; border-radius:8px; border:2px solid var(--vert); display:flex; align-items:center; justify-content:center; font-size:16px; color:#fff; cursor:pointer; flex:0 0 auto;}
+  .res-haut .check.on{background:var(--vert);}
+  .res-bas{display:flex; align-items:center; justify-content:space-between; margin-top:10px;}
+  .res-g{display:flex; align-items:center; gap:8px;}
+  .res-g button{width:34px; height:34px; border-radius:50%; border:1px solid var(--bord); background:#fff; font-size:18px; font-weight:700; color:var(--vert-fonce); cursor:pointer;}
+  .res-g input{width:60px; text-align:center; font-size:17px; font-weight:800; border:none; background:none; outline:none; -moz-appearance:textfield;}
+  .res-g input::-webkit-outer-spin-button,.res-g input::-webkit-inner-spin-button{-webkit-appearance:none;}
+  .res-g .u{font-size:13px; color:var(--gris);}
+  .res-kcal{font-weight:800; font-size:16px; color:var(--vert-fonce);}
+  .res-mac{font-size:11px; color:var(--gris); margin-top:6px; display:flex; gap:10px; flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🔥 Compteur de calories</h1>
+  <div class="ring-wrap">
+    <div class="ring">
+      <svg width="104" height="104" viewBox="0 0 104 104">
+        <circle cx="52" cy="52" r="46" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="10"/>
+        <circle id="jauge" cx="52" cy="52" r="46" fill="none" stroke="#fff" stroke-width="10" stroke-linecap="round" stroke-dasharray="289" stroke-dashoffset="289"/>
+      </svg>
+      <div class="val"><b id="ring-total">0</b><span>kcal</span></div>
+    </div>
+    <div class="infos">
+      <div class="ligne"><span>Objectif</span><b class="obj-edit" onclick="modifierObjectif()"><span id="ligne-obj">2000</span> kcal ✏️</b></div>
+      <div class="ligne"><span>Consommé</span><b id="ligne-conso">0 kcal</b></div>
+      <div class="restant" id="restant">Il te reste 2000 kcal</div>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="carte">
+    <h3>🥗 Apports du jour</h3>
+    <div class="macros" id="macros"></div>
+  </div>
+
+  <div class="carte">
+    <h3>💧 Hydratation</h3>
+    <div class="eau-haut">
+      <div class="eau-total"><span id="eau-litres">0</span><small> / 2 L</small></div>
+      <div class="eau-badge" id="eau-badge">0 verre</div>
+    </div>
+    <div class="verres" id="verres"></div>
+    <div class="eau-btns">
+      <button onclick="ajouterVerre(-1)">− Retirer</button>
+      <button class="plus" onclick="ajouterVerre(1)">+ Un verre (25 cl)</button>
+    </div>
+  </div>
+
+  <div class="carte">
+    <h3>⏱️ Jeûne</h3>
+    <div class="jeune-live">
+      <div class="jeune-timer" id="jeune-timer">—</div>
+      <div class="jeune-sous" id="jeune-sous">Ajoute un repas pour démarrer le chrono</div>
+    </div>
+    <div class="jeune-obj">
+      <div class="jeune-obj-haut">
+        <span class="jeune-obj-label" onclick="modifierObjectifJeune()">Objectif <b id="jeune-obj-h">16 h</b> ✏️</span>
+        <span class="jeune-pct" id="jeune-pct">0 %</span>
+      </div>
+      <div class="jeune-bar"><div class="jeune-bar-fill" id="jeune-bar-fill"></div></div>
+      <div class="jeune-reste" id="jeune-reste"></div>
+    </div>
+    <div class="jeune-prec" id="jeune-prec" style="display:none"></div>
+  </div>
+
+  <div class="carte" id="carte-histo" style="display:none">
+    <h3>📊 Historique des jeûnes</h3>
+    <div class="histo-chart" id="histo-chart"></div>
+    <div class="histo-legende">Chaque barre = un jeûne nocturne · vert = objectif atteint</div>
+  </div>
+
+  <div class="section-titre" id="titre-jour">Aujourd'hui</div>
+  <div class="journal" id="journal"></div>
+</div>
+
+<button class="fab" onclick="ouvrirAjout()">📷 Ajouter un repas</button>
+
+<div class="overlay" id="overlay" onclick="fermerSheet()"></div>
+<div class="sheet" id="sheet">
+  <div class="barre"></div>
+  <div class="sheet-head">
+    <h2 id="sheet-titre">Ajouter un aliment</h2>
+    <button class="fermer" onclick="fermerSheet()">×</button>
+  </div>
+  <div class="sheet-body" id="sheet-body"></div>
+</div>
+
+<script>
+/* ---------- Base d'aliments ----------
+   k = kcal/100g ; gl = glucides ; pr = protéines ; li = lipides ; fi = fibres (g/100g)
+   p = portions [libellé, grammes] */
+const ALIMENTS = [
+  // Petit-déjeuner
+  {n:"Pain baguette", i:"🥖", k:265, gl:55, pr:9, li:1.3, fi:3, c:"petit-dej", p:[["1 tranche",30],["Demi-baguette",60],["100 g",100]]},
+  {n:"Pain complet", i:"🍞", k:247, gl:43, pr:9, li:3.5, fi:7, c:"petit-dej", p:[["1 tranche",35],["100 g",100]]},
+  {n:"Croissant", i:"🥐", k:406, gl:46, pr:8, li:21, fi:2.5, c:"petit-dej", p:[["1 croissant",60]]},
+  {n:"Pain au chocolat", i:"🥐", k:414, gl:47, pr:7.5, li:22, fi:2.7, c:"petit-dej", p:[["1 pièce",70]]},
+  {n:"Céréales (corn flakes)", i:"🥣", k:378, gl:84, pr:7, li:0.9, fi:3, c:"petit-dej", p:[["1 bol",40],["100 g",100]]},
+  {n:"Muesli", i:"🥣", k:389, gl:66, pr:10, li:8, fi:7, c:"petit-dej", p:[["1 bol",50],["100 g",100]]},
+  {n:"Flocons d'avoine", i:"🥣", k:372, gl:60, pr:13, li:7, fi:10, c:"petit-dej", p:[["1 portion",40],["100 g",100]]},
+  {n:"Beurre", i:"🧈", k:717, gl:0.6, pr:0.9, li:81, fi:0, c:"petit-dej", p:[["1 noisette",10],["100 g",100]]},
+  {n:"Confiture", i:"🍓", k:278, gl:69, pr:0.4, li:0.1, fi:1, c:"petit-dej", p:[["1 c. à soupe",20],["100 g",100]]},
+  {n:"Miel", i:"🍯", k:304, gl:82, pr:0.3, li:0, fi:0.2, c:"petit-dej", p:[["1 c. à café",7],["1 c. à soupe",20]]},
+  {n:"Nutella", i:"🍫", k:539, gl:57, pr:6, li:31, fi:3.5, c:"petit-dej", p:[["1 c. à soupe",20],["100 g",100]]},
+  {n:"Œuf", i:"🥚", k:143, gl:0.7, pr:13, li:10, fi:0, c:"petit-dej", p:[["1 œuf",55],["2 œufs",110]]},
+  {n:"Yaourt nature", i:"🥛", k:61, gl:4.7, pr:3.5, li:3.3, fi:0, c:"petit-dej", p:[["1 pot",125]]},
+  {n:"Yaourt aux fruits", i:"🥛", k:97, gl:15, pr:3.8, li:2.5, fi:0.2, c:"petit-dej", p:[["1 pot",125]]},
+
+  // Fruits
+  {n:"Pomme", i:"🍎", k:52, gl:14, pr:0.3, li:0.2, fi:2.4, c:"fruits", p:[["1 pomme",180]]},
+  {n:"Banane", i:"🍌", k:89, gl:23, pr:1.1, li:0.3, fi:2.6, c:"fruits", p:[["1 banane",120]]},
+  {n:"Orange", i:"🍊", k:47, gl:12, pr:0.9, li:0.1, fi:2.4, c:"fruits", p:[["1 orange",150]]},
+  {n:"Fraises", i:"🍓", k:33, gl:8, pr:0.7, li:0.3, fi:2, c:"fruits", p:[["1 bol",150],["100 g",100]]},
+  {n:"Raisin", i:"🍇", k:69, gl:18, pr:0.7, li:0.2, fi:0.9, c:"fruits", p:[["1 grappe",150],["100 g",100]]},
+  {n:"Kiwi", i:"🥝", k:61, gl:15, pr:1.1, li:0.5, fi:3, c:"fruits", p:[["1 kiwi",75]]},
+  {n:"Poire", i:"🍐", k:57, gl:15, pr:0.4, li:0.1, fi:3.1, c:"fruits", p:[["1 poire",170]]},
+  {n:"Pêche", i:"🍑", k:39, gl:9.5, pr:0.9, li:0.3, fi:1.5, c:"fruits", p:[["1 pêche",150]]},
+  {n:"Ananas", i:"🍍", k:50, gl:13, pr:0.5, li:0.1, fi:1.4, c:"fruits", p:[["1 tranche",80],["100 g",100]]},
+  {n:"Melon", i:"🍈", k:34, gl:8, pr:0.8, li:0.2, fi:0.9, c:"fruits", p:[["1 part",200],["100 g",100]]},
+  {n:"Clémentine", i:"🍊", k:47, gl:12, pr:0.9, li:0.2, fi:1.7, c:"fruits", p:[["1 clémentine",70]]},
+  {n:"Avocat", i:"🥑", k:160, gl:9, pr:2, li:15, fi:7, c:"fruits", p:[["1/2 avocat",100],["1 avocat",200]]},
+
+  // Légumes
+  {n:"Salade verte", i:"🥬", k:15, gl:2.9, pr:1.4, li:0.2, fi:1.3, c:"legumes", p:[["1 bol",80],["100 g",100]]},
+  {n:"Tomate", i:"🍅", k:18, gl:3.9, pr:0.9, li:0.2, fi:1.2, c:"legumes", p:[["1 tomate",120],["100 g",100]]},
+  {n:"Carotte", i:"🥕", k:41, gl:10, pr:0.9, li:0.2, fi:2.8, c:"legumes", p:[["1 carotte",80],["100 g",100]]},
+  {n:"Courgette", i:"🥒", k:17, gl:3.1, pr:1.2, li:0.3, fi:1, c:"legumes", p:[["1 portion",150],["100 g",100]]},
+  {n:"Haricots verts", i:"🫛", k:31, gl:7, pr:1.8, li:0.1, fi:3.4, c:"legumes", p:[["1 portion",150],["100 g",100]]},
+  {n:"Brocoli", i:"🥦", k:34, gl:7, pr:2.8, li:0.4, fi:2.6, c:"legumes", p:[["1 portion",150],["100 g",100]]},
+  {n:"Pomme de terre", i:"🥔", k:77, gl:17, pr:2, li:0.1, fi:2.2, c:"legumes", p:[["1 pdt",150],["100 g",100]]},
+  {n:"Petits pois", i:"🟢", k:81, gl:14, pr:5, li:0.4, fi:5, c:"legumes", p:[["1 portion",150],["100 g",100]]},
+  {n:"Épinards", i:"🥬", k:23, gl:3.6, pr:2.9, li:0.4, fi:2.2, c:"legumes", p:[["1 portion",150],["100 g",100]]},
+  {n:"Maïs", i:"🌽", k:86, gl:19, pr:3.2, li:1.2, fi:2.7, c:"legumes", p:[["1 portion",100]]},
+  {n:"Champignons", i:"🍄", k:22, gl:3.3, pr:3.1, li:0.3, fi:1, c:"legumes", p:[["1 portion",100]]},
+  {n:"Soupe de légumes", i:"🍲", k:40, gl:6, pr:1.5, li:1, fi:1.5, c:"legumes", p:[["1 bol",250],["100 ml",100]]},
+
+  // Viandes / poissons
+  {n:"Blanc de poulet", i:"🍗", k:165, gl:0, pr:31, li:3.6, fi:0, c:"viandes", p:[["1 escalope",120],["100 g",100]]},
+  {n:"Steak de bœuf", i:"🥩", k:250, gl:0, pr:26, li:15, fi:0, c:"viandes", p:[["1 steak",130],["100 g",100]]},
+  {n:"Steak haché 15%", i:"🍔", k:220, gl:0, pr:20, li:15, fi:0, c:"viandes", p:[["1 steak",100]]},
+  {n:"Jambon blanc", i:"🍖", k:120, gl:1, pr:18, li:5, fi:0, c:"viandes", p:[["1 tranche",40]]},
+  {n:"Saucisse", i:"🌭", k:300, gl:1, pr:13, li:27, fi:0, c:"viandes", p:[["1 saucisse",70]]},
+  {n:"Lardons", i:"🥓", k:280, gl:0.5, pr:15, li:24, fi:0, c:"viandes", p:[["1 portion",50],["100 g",100]]},
+  {n:"Côte de porc", i:"🍖", k:242, gl:0, pr:26, li:15, fi:0, c:"viandes", p:[["1 côte",150],["100 g",100]]},
+  {n:"Saumon", i:"🐟", k:208, gl:0, pr:20, li:13, fi:0, c:"viandes", p:[["1 pavé",130],["100 g",100]]},
+  {n:"Cabillaud", i:"🐟", k:82, gl:0, pr:18, li:0.7, fi:0, c:"viandes", p:[["1 filet",130],["100 g",100]]},
+  {n:"Thon (boîte)", i:"🐟", k:116, gl:0, pr:26, li:1, fi:0, c:"viandes", p:[["1 boîte",95],["100 g",100]]},
+  {n:"Crevettes", i:"🦐", k:99, gl:0.2, pr:24, li:0.3, fi:0, c:"viandes", p:[["1 portion",100]]},
+  {n:"Poisson pané", i:"🐟", k:200, gl:15, pr:12, li:10, fi:0.8, c:"viandes", p:[["1 pièce",70]]},
+
+  // Féculents / plats
+  {n:"Pâtes cuites", i:"🍝", k:158, gl:31, pr:5.5, li:1, fi:2, c:"plats", p:[["1 assiette",200],["100 g",100]]},
+  {n:"Riz cuit", i:"🍚", k:130, gl:28, pr:2.7, li:0.3, fi:0.4, c:"plats", p:[["1 assiette",200],["100 g",100]]},
+  {n:"Frites", i:"🍟", k:312, gl:41, pr:3.4, li:15, fi:3.8, c:"plats", p:[["1 portion",150],["100 g",100]]},
+  {n:"Pizza", i:"🍕", k:266, gl:33, pr:11, li:10, fi:2.3, c:"plats", p:[["1 part",120],["1 pizza",400]]},
+  {n:"Hamburger", i:"🍔", k:250, gl:22, pr:13, li:12, fi:1.5, c:"plats", p:[["1 burger",220]]},
+  {n:"Quiche lorraine", i:"🥧", k:270, gl:20, pr:9, li:17, fi:1, c:"plats", p:[["1 part",150]]},
+  {n:"Sandwich jambon-beurre", i:"🥪", k:280, gl:33, pr:11, li:11, fi:2, c:"plats", p:[["1 sandwich",180]]},
+  {n:"Lasagnes", i:"🍝", k:130, gl:13, pr:7, li:5.5, fi:1.2, c:"plats", p:[["1 part",300],["100 g",100]]},
+  {n:"Sushi", i:"🍣", k:150, gl:30, pr:5, li:1.5, fi:0.8, c:"plats", p:[["1 pièce",25],["6 pièces",150]]},
+  {n:"Purée", i:"🥔", k:110, gl:14, pr:2.2, li:4.5, fi:1.5, c:"plats", p:[["1 portion",200],["100 g",100]]},
+  {n:"Semoule / couscous", i:"🍚", k:112, gl:23, pr:3.8, li:0.2, fi:1.4, c:"plats", p:[["1 assiette",200],["100 g",100]]},
+  {n:"Tarte salée", i:"🥧", k:250, gl:22, pr:7, li:15, fi:1.2, c:"plats", p:[["1 part",150]]},
+  {n:"Nuggets", i:"🍗", k:296, gl:16, pr:15, li:19, fi:1, c:"plats", p:[["1 nugget",18],["6 nuggets",108]]},
+  {n:"Kebab", i:"🥙", k:215, gl:16, pr:14, li:11, fi:1.5, c:"plats", p:[["1 kebab",350],["100 g",100]]},
+
+  // Produits laitiers / fromages
+  {n:"Lait demi-écrémé", i:"🥛", k:46, gl:4.8, pr:3.3, li:1.6, fi:0, c:"laitier", p:[["1 verre",200],["100 ml",100]]},
+  {n:"Fromage (emmental)", i:"🧀", k:380, gl:0.5, pr:28, li:29, fi:0, c:"laitier", p:[["1 portion",30],["100 g",100]]},
+  {n:"Camembert", i:"🧀", k:299, gl:0.5, pr:20, li:24, fi:0, c:"laitier", p:[["1 portion",30]]},
+  {n:"Fromage blanc", i:"🥛", k:75, gl:4.5, pr:8, li:3, fi:0, c:"laitier", p:[["1 pot",100]]},
+  {n:"Petit-suisse", i:"🥛", k:95, gl:3, pr:9, li:5, fi:0, c:"laitier", p:[["1 pièce",60]]},
+  {n:"Crème fraîche", i:"🥛", k:292, gl:3, pr:2.4, li:30, fi:0, c:"laitier", p:[["1 c. à soupe",30],["100 g",100]]},
+
+  // Snacks / sucré
+  {n:"Chocolat au lait", i:"🍫", k:535, gl:59, pr:7.7, li:30, fi:3.4, c:"sucre", p:[["1 carré",6],["1 rangée",25]]},
+  {n:"Biscuits (petit-beurre)", i:"🍪", k:435, gl:73, pr:7, li:12, fi:2.5, c:"sucre", p:[["1 biscuit",8],["3 biscuits",24]]},
+  {n:"Cookie", i:"🍪", k:480, gl:64, pr:5.5, li:23, fi:2.5, c:"sucre", p:[["1 cookie",40]]},
+  {n:"Gâteau au chocolat", i:"🍰", k:370, gl:45, pr:6, li:18, fi:2.5, c:"sucre", p:[["1 part",100]]},
+  {n:"Glace", i:"🍦", k:207, gl:24, pr:3.5, li:11, fi:0.7, c:"sucre", p:[["1 boule",50],["2 boules",100]]},
+  {n:"Chips", i:"🥔", k:536, gl:50, pr:6.6, li:34, fi:4.8, c:"sucre", p:[["1 poignée",30],["1 paquet",150]]},
+  {n:"Cacahuètes", i:"🥜", k:567, gl:16, pr:26, li:49, fi:8.5, c:"sucre", p:[["1 poignée",30],["100 g",100]]},
+  {n:"Bonbons", i:"🍬", k:350, gl:87, pr:0.5, li:0, fi:0, c:"sucre", p:[["1 poignée",30]]},
+  {n:"Crêpe sucrée", i:"🥞", k:200, gl:30, pr:6, li:6, fi:1.2, c:"sucre", p:[["1 crêpe",80]]},
+  {n:"Barre chocolatée", i:"🍫", k:480, gl:60, pr:5, li:24, fi:1.8, c:"sucre", p:[["1 barre",45]]},
+  {n:"Pain d'épices", i:"🍞", k:340, gl:73, pr:4, li:3, fi:3, c:"sucre", p:[["1 tranche",30]]},
+
+  // Boissons
+  {n:"Café / thé (sans sucre)", i:"☕", k:2, gl:0, pr:0.1, li:0, fi:0, c:"boissons", p:[["1 tasse",1]]},
+  {n:"Jus d'orange", i:"🧃", k:45, gl:10, pr:0.7, li:0.2, fi:0.2, c:"boissons", p:[["1 verre",200],["100 ml",100]]},
+  {n:"Coca-Cola", i:"🥤", k:42, gl:10.6, pr:0, li:0, fi:0, c:"boissons", p:[["1 canette",330],["1 verre",250]]},
+  {n:"Coca zéro", i:"🥤", k:0, gl:0, pr:0, li:0, fi:0, c:"boissons", p:[["1 canette",330]]},
+  {n:"Bière", i:"🍺", k:43, gl:3.6, pr:0.5, li:0, fi:0, c:"boissons", p:[["1 demi",250],["1 pinte",500]]},
+  {n:"Vin rouge", i:"🍷", k:85, gl:2.6, pr:0.1, li:0, fi:0, c:"boissons", p:[["1 verre",120]]},
+  {n:"Smoothie", i:"🥤", k:60, gl:13, pr:0.8, li:0.3, fi:1.2, c:"boissons", p:[["1 verre",250],["100 ml",100]]},
+  {n:"Sirop (dilué)", i:"🥤", k:22, gl:5.5, pr:0, li:0, fi:0, c:"boissons", p:[["1 verre",250]]},
+];
+
+const CATEGORIES = [
+  {id:"tous", nom:"⭐ Tous"},
+  {id:"petit-dej", nom:"🥐 Petit-déj"},
+  {id:"fruits", nom:"🍎 Fruits"},
+  {id:"legumes", nom:"🥦 Légumes"},
+  {id:"viandes", nom:"🍗 Viandes/Poissons"},
+  {id:"plats", nom:"🍝 Plats"},
+  {id:"laitier", nom:"🧀 Laitiers"},
+  {id:"sucre", nom:"🍫 Snacks/Sucré"},
+  {id:"boissons", nom:"🥤 Boissons"},
+];
+
+/* Besoins journaliers de référence (adulte moyen, ~2000 kcal) */
+const OBJ_MACROS = { gl:260, pr:50, li:70, fi:30 };
+const MACRO_INFO = [
+  {key:"gl", nom:"Glucides", couleur:"var(--gluc)"},
+  {key:"pr", nom:"Protéines", couleur:"var(--prot)"},
+  {key:"li", nom:"Lipides", couleur:"var(--lip)"},
+  {key:"fi", nom:"Fibres", couleur:"var(--fib)"},
+];
+const VERRE_CL = 25;           // 1 verre = 25 cl
+const EAU_OBJ_VERRES = 8;      // 8 verres = 2 L
+
+/* ---------- État ---------- */
+function cleJour(){ const d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function charger(k,def){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function sauver(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+
+let objectif = charger("cc_objectif", 2000);
+let journal = charger("cc_journal_"+cleJour(), []);
+let eau = charger("cc_eau_"+cleJour(), 0);
+let dernierRepas = charger("cc_dernier_repas", null);   // timestamp (ms) du repas le plus récent
+let jeunePrec = charger("cc_jeune_prec", null);         // {debut, fin} du dernier jeûne nocturne
+let objectifJeune = charger("cc_obj_jeune", 16);        // objectif de jeûne en heures
+let etape = "recherche";
+let catActive = "tous";
+let alimSelect = null;
+let photoSelect = null;
+let grammesSelect = 100;
+let resultats = null;      // aliments détectés par l'IA
+let iaComment = "";
+let iaErreur = "";
+
+/* ---------- Anneau SVG générique ---------- */
+function anneauSVG(taille, r, largeur, pct, couleur, fondClair){
+  const circ = 2*Math.PI*r;
+  const off = circ*(1-Math.min(pct,1));
+  const fond = fondClair || "#e5e7eb";
+  const c = taille/2;
+  return `<svg width="${taille}" height="${taille}" viewBox="0 0 ${taille} ${taille}">
+    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${fond}" stroke-width="${largeur}"/>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${couleur}" stroke-width="${largeur}"
+      stroke-linecap="round" stroke-dasharray="${circ.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"
+      style="transition:stroke-dashoffset .5s ease"/>
+  </svg>`;
+}
+
+/* ---------- Totaux ---------- */
+function totaux(){
+  return journal.reduce((t,it)=>{
+    t.k+=it.kcal; t.gl+=it.gl||0; t.pr+=it.pr||0; t.li+=it.li||0; t.fi+=it.fi||0; return t;
+  }, {k:0,gl:0,pr:0,li:0,fi:0});
+}
+
+/* ---------- Rendu principal ---------- */
+function rendre(){
+  const t = totaux();
+
+  // Calories
+  document.getElementById("ring-total").textContent = Math.round(t.k);
+  document.getElementById("ligne-conso").textContent = Math.round(t.k)+" kcal";
+  document.getElementById("ligne-obj").textContent = objectif;
+  const reste = objectif-Math.round(t.k);
+  const rEl = document.getElementById("restant");
+  if(reste>=0){ rEl.textContent = "Il te reste "+reste+" kcal"; rEl.style.background="rgba(255,255,255,.18)"; }
+  else { rEl.textContent = "Dépassé de "+(-reste)+" kcal"; rEl.style.background="rgba(220,38,38,.55)"; }
+  const circ=289, pct=Math.min(t.k/objectif,1);
+  const jg=document.getElementById("jauge");
+  jg.style.strokeDashoffset=circ*(1-pct); jg.style.stroke=t.k>objectif?"#fecaca":"#fff"; jg.style.transition="stroke-dashoffset .5s ease";
+
+  // Macros
+  document.getElementById("macros").innerHTML = MACRO_INFO.map(m=>{
+    const val = t[m.key], goal = OBJ_MACROS[m.key], pct = val/goal, ok = val>=goal;
+    return `<div class="macro ${ok?'ok':''}">
+      <div class="mring">
+        ${anneauSVG(70,26,6,pct,m.couleur)}
+        <div class="c" style="color:${m.couleur}">${ok?'✓':Math.round(val)}</div>
+      </div>
+      <div class="mlabel">${m.nom}</div>
+      <div class="mgoal">${Math.round(val)} / ${goal} g</div>
+    </div>`;
+  }).join("");
+
+  // Hydratation
+  rendreEau();
+
+  // Journal
+  const jEl = document.getElementById("journal");
+  if(journal.length===0){
+    jEl.innerHTML = '<div class="vide"><span class="emo">🍽️</span>Aucun repas enregistré aujourd\'hui.<br>Appuie sur « Ajouter un repas » pour commencer.</div>';
+  } else {
+    jEl.innerHTML = journal.map((it,idx)=>`
+      <div class="item">
+        <div class="miniature">${it.photo?`<img src="${it.photo}" style="width:100%;height:100%;object-fit:cover;border-radius:12px;">`:it.i}</div>
+        <div class="txt">
+          <div class="nom">${it.n}</div>
+          <div class="det">${it.portion} · ${it.grammes} g${it.ts?" · "+heureDe(it.ts):""}</div>
+          <div class="macdet">
+            <span style="color:var(--gluc)"><b>G</b> ${Math.round(it.gl)}g</span>
+            <span style="color:var(--prot)"><b>P</b> ${Math.round(it.pr)}g</span>
+            <span style="color:var(--lip)"><b>L</b> ${Math.round(it.li)}g</span>
+            <span style="color:var(--fib)"><b>F</b> ${Math.round(it.fi)}g</span>
+          </div>
+        </div>
+        <div class="kcal">${it.kcal} kcal</div>
+        <button class="suppr" onclick="supprimer(${idx})">🗑️</button>
+      </div>`).join("");
+  }
+}
+
+/* ---------- Hydratation ---------- */
+function rendreEau(){
+  const litres = (eau*VERRE_CL/100);
+  document.getElementById("eau-litres").textContent = litres.toLocaleString('fr-FR',{minimumFractionDigits:0, maximumFractionDigits:2})+" L";
+  const badge = document.getElementById("eau-badge");
+  badge.textContent = eau+" verre"+(eau>1?"s":"");
+  badge.classList.toggle("ok", eau>=EAU_OBJ_VERRES);
+  if(eau>=EAU_OBJ_VERRES) badge.textContent += " ✓";
+
+  const nb = Math.max(EAU_OBJ_VERRES, eau);
+  let html="";
+  for(let i=0;i<nb;i++){
+    html += `<div class="verre ${i<eau?'plein':''}" onclick="reglerVerre(${i})"><span class="em">${i<eau?'💧':''}</span><div class="rempli"></div></div>`;
+  }
+  document.getElementById("verres").innerHTML = html;
+}
+function ajouterVerre(d){ eau=Math.max(0, eau+d); sauver("cc_eau_"+cleJour(), eau); rendreEau(); }
+function reglerVerre(i){ eau = (i+1===eau) ? i : i+1; if(eau<0) eau=0; sauver("cc_eau_"+cleJour(), eau); rendreEau(); }
+
+/* ---------- Journal ---------- */
+function supprimer(idx){ journal.splice(idx,1); sauver("cc_journal_"+cleJour(), journal); rendre(); }
+function modifierObjectif(){
+  const v = prompt("Ton objectif calorique par jour (kcal) :", objectif);
+  if(v===null) return;
+  const n = parseInt(v,10);
+  if(!isNaN(n) && n>0){ objectif=n; sauver("cc_objectif",objectif); rendre(); }
+}
+
+/* ---------- Feuille d'ajout ---------- */
+function ouvrirAjout(){
+  etape="recherche"; alimSelect=null; photoSelect=null; catActive="tous";
+  resultats=null; iaComment=""; iaErreur="";
+  rendreSheet();
+  document.getElementById("overlay").classList.add("on");
+  document.getElementById("sheet").classList.add("on");
+}
+function fermerSheet(){ document.getElementById("overlay").classList.remove("on"); document.getElementById("sheet").classList.remove("on"); }
+
+function rendreSheet(){
+  const body=document.getElementById("sheet-body"), titre=document.getElementById("sheet-titre");
+  if(etape==="recherche"){
+    titre.textContent="Ajouter un aliment";
+    body.innerHTML = `
+      <div class="photo-zone" id="pz">
+        ${photoSelect
+          ? `<img src="${photoSelect}">
+             <button class="btn-ia" onclick="analyserPhoto()">✨ Analyser mon assiette avec l'IA</button>
+             <button class="photo-refaire" onclick="refairePhoto(event)">Reprendre la photo</button>`
+          : `<span class="emo">📷</span><p>Prends une photo de ton assiette :<br>l'IA reconnaît les aliments automatiquement.</p>
+             <input type="file" accept="image/*" capture="environment" onchange="chargerPhoto(event)">`}
+      </div>
+      <div class="ia-sep">ou choisis manuellement</div>
+      <input class="recherche" id="rech" type="text" placeholder="🔍 Rechercher un aliment..." oninput="filtrer()" autocomplete="off">
+      <div class="cat-tabs" id="tabs">
+        ${CATEGORIES.map(c=>`<div class="cat-tab ${c.id===catActive?'on':''}" onclick="choisirCat('${c.id}')">${c.nom}</div>`).join("")}
+      </div>
+      <div class="liste-alim" id="liste"></div>`;
+    filtrer();
+  } else if(etape==="analyse"){
+    titre.textContent="Analyse en cours…";
+    body.innerHTML = `<div class="ia-load"><div class="spin"></div><p>L'IA regarde ton assiette et estime les aliments…</p></div>`;
+  } else if(etape==="resultats"){
+    titre.textContent="Aliments détectés";
+    let html = "";
+    if(iaErreur){
+      html += `<div class="ia-erreur">${iaErreur}</div>
+        <button class="btn-second" onclick="retourRecherche()">← Retour</button>`;
+      body.innerHTML = html; return;
+    }
+    if(iaComment) html += `<div class="ia-comment">💬 ${iaComment}</div>`;
+    if(!resultats || resultats.length===0){
+      html += `<div class="vide">Aucun aliment détecté sur la photo.</div>
+        <button class="btn-second" onclick="retourRecherche()">← Choisir manuellement</button>`;
+      body.innerHTML = html; return;
+    }
+    html += resultats.map((r,idx)=>{
+      const kcal = Math.round(r.kcal * r.grammes / r.base);
+      return `<div class="res-item ${r.inclus?'':'off'}" id="res-${idx}">
+        <div class="res-haut">
+          <div class="ico">${r.emoji||'🍽️'}</div>
+          <div class="info">
+            <div class="n">${r.nom}</div>
+            <div class="c">confiance : ${r.confiance||'—'}</div>
+          </div>
+          <div class="check ${r.inclus?'on':''}" onclick="toggleInclus(${idx})">${r.inclus?'✓':''}</div>
+        </div>
+        <div class="res-bas">
+          <div class="res-g">
+            <button onclick="ajusterResG(${idx},-10)">−</button>
+            <input type="number" inputmode="numeric" value="${r.grammes}" oninput="saisirResG(${idx},this.value)"><span class="u">g</span>
+            <button onclick="ajusterResG(${idx},10)">+</button>
+          </div>
+          <div class="res-kcal" id="reskcal-${idx}">${kcal} kcal</div>
+        </div>
+        <div class="res-mac" id="resmac-${idx}">${macResTexte(r)}</div>
+      </div>`;
+    }).join("");
+    html += `<button class="btn-principal" onclick="ajouterResultats()">Ajouter au journal</button>
+      <button class="btn-second" onclick="retourRecherche()">← Choisir manuellement</button>`;
+    body.innerHTML = html;
+  } else if(etape==="portion"){
+    const a=alimSelect;
+    titre.textContent="Quelle quantité ?";
+    body.innerHTML = `
+      <div class="portion-alim">
+        <div class="ico">${photoSelect?`<img src="${photoSelect}" style="width:70px;height:70px;object-fit:cover;border-radius:16px;">`:a.i}</div>
+        <div class="n">${a.n}</div>
+        <div class="base">${a.k} kcal / 100 g</div>
+      </div>
+      <div class="presets" id="presets">
+        ${a.p.map(p=>`<button class="preset ${p[1]===grammesSelect?'on':''}" onclick="choisirPreset(${p[1]})">${p[0]}</button>`).join("")}
+      </div>
+      <div class="grammes">
+        <button onclick="ajusterG(-10)">−</button>
+        <div class="champ"><input id="gInput" type="number" inputmode="numeric" value="${grammesSelect}" oninput="saisirG(this.value)"><span class="unite">g</span></div>
+        <button onclick="ajusterG(10)">+</button>
+      </div>
+      <div class="calc-result">Total pour cette portion<b id="calcKcal">0 kcal</b></div>
+      <div class="decompo">
+        <div class="dtitre">Ce que ça t'apporte aujourd'hui</div>
+        <div class="drings" id="drings"></div>
+      </div>
+      <button class="btn-principal" onclick="ajouterAuJournal()">Ajouter au journal</button>
+      <button class="btn-second" onclick="retourRecherche()">← Choisir un autre aliment</button>`;
+    majCalc();
+  }
+}
+
+function choisirCat(id){ catActive=id; document.querySelectorAll("#tabs .cat-tab").forEach(t=>t.classList.toggle("on", t.textContent===CATEGORIES.find(c=>c.id===id).nom)); filtrer(); }
+function filtrer(){
+  const q=(document.getElementById("rech")?.value||"").toLowerCase().trim();
+  const res=ALIMENTS.filter(a=>(catActive==="tous"||a.c===catActive)&&(!q||a.n.toLowerCase().includes(q)));
+  const liste=document.getElementById("liste");
+  if(res.length===0){ liste.innerHTML='<div class="vide">Aucun aliment trouvé.</div>'; return; }
+  liste.innerHTML=res.map(a=>{
+    const idx=ALIMENTS.indexOf(a);
+    return `<div class="alim" onclick="choisirAlim(${idx})"><div class="ico">${a.i}</div><div class="n">${a.n}</div><div class="k">${a.k} kcal/100g</div></div>`;
+  }).join("");
+}
+
+function choisirAlim(idx){ alimSelect=ALIMENTS[idx]; grammesSelect=alimSelect.p[0][1]; etape="portion"; rendreSheet(); }
+function retourRecherche(){ etape="recherche"; alimSelect=null; rendreSheet(); }
+function choisirPreset(g){ grammesSelect=g; majPortion(); }
+function ajusterG(d){ grammesSelect=Math.max(1, grammesSelect+d); majPortion(); }
+function saisirG(v){ const n=parseInt(v,10); grammesSelect=isNaN(n)?0:Math.max(0,n); majCalc(); majPresets(); }
+function majPortion(){ document.getElementById("gInput").value=grammesSelect; majCalc(); majPresets(); }
+function majPresets(){ document.querySelectorAll("#presets .preset").forEach((b,i)=>b.classList.toggle("on", alimSelect.p[i][1]===grammesSelect)); }
+
+/* Calcule kcal + décomposition macros de la portion, avec cumul du jour */
+function majCalc(){
+  const g=grammesSelect, a=alimSelect;
+  const kcal=Math.round(a.k*g/100);
+  const el=document.getElementById("calcKcal"); if(el) el.textContent=kcal+" kcal";
+  const dr=document.getElementById("drings"); if(!dr) return;
+  const t=totaux();
+  dr.innerHTML = MACRO_INFO.map(m=>{
+    const ajout=a[m.key]*g/100;               // apport de cette portion
+    const apres=t[m.key]+ajout;               // total du jour après ajout
+    const goal=OBJ_MACROS[m.key], pct=apres/goal, ok=apres>=goal;
+    return `<div class="dr">
+      <div class="mring">
+        ${anneauSVG(60,22,5,pct,m.couleur)}
+        <div class="c" style="color:${m.couleur}">${ok?'✓':Math.round(apres)}</div>
+      </div>
+      <div class="dl">${m.nom}</div>
+      <div class="dplus" style="color:${m.couleur}">+${(Math.round(ajout*10)/10)}g</div>
+    </div>`;
+  }).join("");
+}
+
+function ajouterAuJournal(){
+  if(!grammesSelect || grammesSelect<=0){ alert("Indique une quantité."); return; }
+  const g=grammesSelect, a=alimSelect;
+  const preset=(a.p.find(p=>p[1]===g)||[])[0] || "Portion perso";
+  const premier = journal.length===0;
+  journal.push({
+    n:a.n, i:a.i, grammes:g, portion:preset, ts:Date.now(),
+    kcal:Math.round(a.k*g/100),
+    gl:Math.round(a.gl*g/100*10)/10, pr:Math.round(a.pr*g/100*10)/10,
+    li:Math.round(a.li*g/100*10)/10, fi:Math.round(a.fi*g/100*10)/10,
+    photo:photoSelect||null
+  });
+  sauver("cc_journal_"+cleJour(), journal);
+  marquerRepas(premier);
+  rendre();
+  fermerSheet();
+}
+
+/* ---------- Photo ---------- */
+function chargerPhoto(e){
+  const f=e.target.files[0]; if(!f) return;
+  const reader=new FileReader();
+  reader.onload=ev=>compresser(ev.target.result,500,r=>{ photoSelect=r; rendreSheet(); });
+  reader.readAsDataURL(f);
+}
+function refairePhoto(e){ e.stopPropagation(); photoSelect=null; rendreSheet(); }
+function compresser(dataURL,maxDim,cb){
+  const img=new Image();
+  img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>h&&w>maxDim){ h=h*maxDim/w; w=maxDim; } else if(h>maxDim){ w=w*maxDim/h; h=maxDim; }
+    const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+    cv.getContext("2d").drawImage(img,0,0,w,h);
+    cb(cv.toDataURL("image/jpeg",0.7));
+  };
+  img.src=dataURL;
+}
+
+/* ---------- Analyse IA ---------- */
+async function analyserPhoto(){
+  if(!photoSelect) return;
+  iaErreur=""; iaComment=""; resultats=null;
+  etape="analyse"; rendreSheet();
+  try{
+    const rep = await fetch("/.netlify/functions/analyser", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({image:photoSelect})
+    });
+    const data = await rep.json();
+    if(!rep.ok){
+      iaErreur = (data && data.message) ? data.message : "L'analyse a échoué. Réessaie.";
+      if(data && data.erreur==="cle_manquante") iaErreur = "⚙️ La reconnaissance IA n'est pas encore activée : la clé API doit être ajoutée dans les réglages Netlify.";
+      etape="resultats"; rendreSheet(); return;
+    }
+    iaComment = data.commentaire || "";
+    resultats = (data.aliments||[]).map(a=>{
+      const base = a.quantite_g>0 ? a.quantite_g : 100;
+      return {
+        nom:a.nom, emoji:a.emoji||"🍽️", confiance:a.confiance,
+        base, grammes:base,
+        kcal:a.kcal||0, gl:a.glucides_g||0, pr:a.proteines_g||0, li:a.lipides_g||0, fi:a.fibres_g||0,
+        inclus:true
+      };
+    });
+    etape="resultats"; rendreSheet();
+  }catch(e){
+    iaErreur = "Connexion impossible. Vérifie ta connexion internet.";
+    etape="resultats"; rendreSheet();
+  }
+}
+
+function macResTexte(r){
+  const ratio = r.grammes / r.base;
+  const a = v => Math.round(v*ratio);
+  return `<span style="color:var(--gluc)"><b>G</b> ${a(r.gl)}g</span>
+    <span style="color:var(--prot)"><b>P</b> ${a(r.pr)}g</span>
+    <span style="color:var(--lip)"><b>L</b> ${a(r.li)}g</span>
+    <span style="color:var(--fib)"><b>F</b> ${a(r.fi)}g</span>`;
+}
+function toggleInclus(idx){
+  resultats[idx].inclus = !resultats[idx].inclus;
+  document.getElementById("res-"+idx).classList.toggle("off", !resultats[idx].inclus);
+  const chk = document.querySelector(`#res-${idx} .check`);
+  chk.classList.toggle("on", resultats[idx].inclus);
+  chk.textContent = resultats[idx].inclus ? "✓" : "";
+}
+function ajusterResG(idx,d){ resultats[idx].grammes=Math.max(1, resultats[idx].grammes+d); majResLigne(idx); }
+function saisirResG(idx,v){ const n=parseInt(v,10); resultats[idx].grammes=isNaN(n)?0:Math.max(0,n); majResLigneCalc(idx); }
+function majResLigne(idx){
+  const inp=document.querySelector(`#res-${idx} .res-g input`); if(inp) inp.value=resultats[idx].grammes;
+  majResLigneCalc(idx);
+}
+function majResLigneCalc(idx){
+  const r=resultats[idx];
+  const k=document.getElementById("reskcal-"+idx); if(k) k.textContent=Math.round(r.kcal*r.grammes/r.base)+" kcal";
+  const m=document.getElementById("resmac-"+idx); if(m) m.innerHTML=macResTexte(r);
+}
+function ajouterResultats(){
+  const choisis = (resultats||[]).filter(r=>r.inclus && r.grammes>0);
+  if(choisis.length===0){ alert("Sélectionne au moins un aliment."); return; }
+  const premier = journal.length===0;
+  const maintenant = Date.now();
+  choisis.forEach(r=>{
+    const ratio = r.grammes / r.base;
+    journal.push({
+      n:r.nom, i:r.emoji, grammes:r.grammes, portion:"estimé par l'IA", ts:maintenant,
+      kcal:Math.round(r.kcal*ratio),
+      gl:Math.round(r.gl*ratio*10)/10, pr:Math.round(r.pr*ratio*10)/10,
+      li:Math.round(r.li*ratio*10)/10, fi:Math.round(r.fi*ratio*10)/10,
+      photo:photoSelect||null
+    });
+  });
+  sauver("cc_journal_"+cleJour(), journal);
+  marquerRepas(premier);
+  rendre();
+  fermerSheet();
+}
+
+/* ---------- Jeûne ---------- */
+function heureDe(ts){ const d=new Date(ts); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function fmtDuree(ms){
+  if(ms<0) ms=0;
+  const s=Math.floor(ms/1000), h=Math.floor(s/3600), mn=Math.floor((s%3600)/60), sec=s%60;
+  return h+" h "+String(mn).padStart(2,"0")+" min "+String(sec).padStart(2,"0")+" s";
+}
+function fmtDureeCourt(ms){
+  if(ms<0) ms=0;
+  const s=Math.floor(ms/1000), h=Math.floor(s/3600), mn=Math.floor((s%3600)/60);
+  return h+" h "+String(mn).padStart(2,"0")+" min";
+}
+// Appelé à chaque repas ajouté. premier = c'est le 1er repas du jour.
+function marquerRepas(premier){
+  const now=Date.now();
+  // Si c'est le 1er repas de la journée et qu'il y avait un repas précédent (la veille au soir),
+  // on fige le jeûne nocturne = temps entre ce dernier repas et maintenant (si >= 4 h, pour éviter le bruit).
+  if(premier && dernierRepas && (now-dernierRepas) >= 4*3600*1000){
+    jeunePrec={debut:dernierRepas, fin:now};
+    sauver("cc_jeune_prec", jeunePrec);
+    const histo=charger("cc_jeune_histo", []);
+    histo.push({debut:dernierRepas, fin:now});
+    if(histo.length>60) histo.splice(0, histo.length-60);
+    sauver("cc_jeune_histo", histo);
+  }
+  dernierRepas=now;
+  sauver("cc_dernier_repas", dernierRepas);
+  majJeune();
+  renderHisto();
+}
+function renderHisto(){
+  const carte=document.getElementById("carte-histo");
+  const el=document.getElementById("histo-chart");
+  if(!carte||!el) return;
+  const histo=(charger("cc_jeune_histo", [])||[]);
+  if(histo.length===0){ carte.style.display="none"; return; }
+  carte.style.display="block";
+  const recent=histo.slice(-10);
+  const dureesH=recent.map(j=>(j.fin-j.debut)/3600000);
+  const longest=Math.max.apply(null, dureesH);
+  const maxH=Math.max(objectifJeune, longest)*1.12;
+  const W=320, H=152, mTop=16, mBot=22, plotH=H-mTop-mBot;
+  const n=recent.length, gap=8, bw=(W-gap*(n+1))/n;
+  const yObj=mTop+plotH*(1-objectifJeune/maxH);
+  let bars="";
+  recent.forEach((j,i)=>{
+    const h=dureesH[i];
+    const bh=Math.max(2, plotH*(h/maxH));
+    const x=gap+i*(bw+gap);
+    const y=mTop+plotH-bh;
+    const ok=h>=objectifJeune;
+    const col=ok?"#16a34a":"#6d28d9";
+    const d=new Date(j.fin);
+    const jour=String(d.getDate()).padStart(2,"0")+"/"+String(d.getMonth()+1).padStart(2,"0");
+    const cx=(x+bw/2).toFixed(1);
+    bars+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="3" fill="${col}"/>`;
+    bars+=`<text x="${cx}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" font-weight="700" fill="#6b7280">${Math.round(h)}h</text>`;
+    bars+=`<text x="${cx}" y="${H-7}" text-anchor="middle" font-size="9" fill="#9ca3af">${jour}</text>`;
+  });
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" style="min-width:${n*34}px">
+    <line x1="0" y1="${yObj.toFixed(1)}" x2="${W}" y2="${yObj.toFixed(1)}" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="${W-2}" y="${(yObj-3).toFixed(1)}" text-anchor="end" font-size="9" font-weight="700" fill="#f59e0b">objectif ${fmtObjH(objectifJeune)}</text>
+    ${bars}
+  </svg>`;
+}
+function fmtObjH(h){ return (Number.isInteger(h)?h:(""+h).replace(".",",")) + " h"; }
+function modifierObjectifJeune(){
+  const v=prompt("Ton objectif de jeûne, en heures (ex. 16) :", objectifJeune);
+  if(v===null) return;
+  const n=parseFloat((""+v).replace(",","."));
+  if(!isNaN(n) && n>0 && n<=48){ objectifJeune=n; sauver("cc_obj_jeune",objectifJeune); majJeune(); renderHisto(); }
+}
+function majJeune(){
+  const t=document.getElementById("jeune-timer");
+  const sous=document.getElementById("jeune-sous");
+  const prec=document.getElementById("jeune-prec");
+  const objH=document.getElementById("jeune-obj-h");
+  const pctEl=document.getElementById("jeune-pct");
+  const fill=document.getElementById("jeune-bar-fill");
+  const reste=document.getElementById("jeune-reste");
+  if(!t) return;
+  const elapsed = dernierRepas ? (Date.now()-dernierRepas) : 0;
+  if(!dernierRepas){
+    t.textContent="—";
+    sous.textContent="Ajoute un repas pour démarrer le chrono";
+  } else {
+    t.textContent=fmtDuree(elapsed);
+    sous.textContent="depuis ton dernier repas ("+heureDe(dernierRepas)+")";
+  }
+  // Objectif + barre de progression
+  const objMs = objectifJeune*3600*1000;
+  const pct = objMs>0 ? elapsed/objMs : 0;
+  const atteint = !!dernierRepas && pct>=1;
+  if(objH) objH.textContent = fmtObjH(objectifJeune);
+  if(pctEl){ pctEl.textContent = Math.min(100,Math.round(pct*100))+" %"; pctEl.classList.toggle("ok",atteint); }
+  if(fill){ fill.style.width = Math.min(100,pct*100)+"%"; fill.classList.toggle("ok",atteint); }
+  if(reste){
+    if(!dernierRepas) reste.textContent="";
+    else if(atteint) reste.textContent="🎉 Objectif de "+fmtObjH(objectifJeune)+" atteint !";
+    else reste.textContent="Encore "+fmtDureeCourt(objMs-elapsed)+" avant l'objectif";
+  }
+  if(jeunePrec){
+    prec.style.display="block";
+    prec.innerHTML="🌙 Dernier jeûne nocturne : <b>"+fmtDureeCourt(jeunePrec.fin-jeunePrec.debut)+"</b>"
+      +"<br><span class=\"jp-detail\">de "+heureDe(jeunePrec.debut)+" à "+heureDe(jeunePrec.fin)+"</span>";
+  } else {
+    prec.style.display="none";
+  }
+}
+
+/* ---------- Date ---------- */
+(function(){
+  const d=new Date();
+  const jours=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
+  const mois=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  document.getElementById("titre-jour").textContent="Aujourd'hui — "+jours[d.getDay()]+" "+d.getDate()+" "+mois[d.getMonth()];
+})();
+
+rendre();
+majJeune();
+renderHisto();
+setInterval(majJeune, 1000);   // chrono de jeûne en direct
+</script>
+</body>
+</html>
