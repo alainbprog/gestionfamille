@@ -59,16 +59,18 @@ exports.handler = async (event) => {
       contents: [{ role: "user", parts: [{ text: texte }] }],
       generationConfig: { temperature: 0.1, responseMimeType: "application/json", responseSchema: SCHEMA }
     });
-    // Réessais sur surcharge temporaire (503) ou quota (429)
+    // Réessais uniquement sur surcharge temporaire (503). Le 429 (quota gratuit
+    // épuisé : 5 req/min) demande ~30 s d'attente → on ne réessaie pas.
     let r, detail = "";
     for (let essai = 0; essai < 4; essai++) {
       r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cle }, body: corps });
       if (r.ok) break;
       detail = await r.text();
-      if (r.status !== 503 && r.status !== 429) break;
+      if (r.status !== 503) break;
       if (essai < 3) await new Promise((res) => setTimeout(res, 1200 * (essai + 1)));
     }
     if (!r.ok) {
+      if (r.status === 429) return rep(429, { erreur: "quota", message: "Limite gratuite atteinte (5 demandes/min). Réessaie dans ~30 secondes." });
       return rep(502, { erreur: "api_erreur", statut: r.status, detail: detail.slice(0, 500) });
     }
     const donnees = await r.json();

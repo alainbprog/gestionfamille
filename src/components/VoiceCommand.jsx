@@ -64,9 +64,11 @@ export default function VoiceCommand() {
       const data = await res.json();
       if (!res.ok || data.erreur) {
         setStatus('error');
-        setMsg(data.erreur === 'cle_manquante'
-          ? "L'assistant vocal n'est pas encore configuré (clé IA manquante)."
-          : "Je n'ai pas réussi à traiter la demande. Réessaie.");
+        setMsg(
+          data.erreur === 'cle_manquante' ? "L'assistant vocal n'est pas encore configuré (clé IA manquante)."
+          : data.erreur === 'quota' ? (data.message || 'Trop de demandes rapprochées. Réessaie dans ~30 secondes.')
+          : "Je n'ai pas réussi à traiter la demande. Réessaie."
+        );
         reset();
         return;
       }
