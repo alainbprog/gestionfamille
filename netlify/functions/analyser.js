@@ -3,7 +3,7 @@
 // La clé n'est JAMAIS exposée au navigateur : variable d'environnement GEMINI_API_KEY
 // (Netlify > Site settings > Environment variables). Clé gratuite : https://aistudio.google.com/apikey
 
-const MODELE = "gemini-2.5-flash"; // vision + palier gratuit
+const MODELE = "gemini-3.8-flash"; // vision + palier gratuit (2.5-flash retiré pour les nouveaux comptes)
 
 // Schéma de sortie structurée (format Gemini : types en MAJUSCULES)
 const SCHEMA = {
