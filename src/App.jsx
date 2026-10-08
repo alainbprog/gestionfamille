@@ -14,12 +14,14 @@ import Routines from './pages/Routines';
 import Anniversaires from './pages/Anniversaires';
 import BienEtre from './pages/BienEtre';
 import { FamilyProvider } from './context/FamilyContext';
+import DailyReminder from './components/DailyReminder';
 
 function Layout({ children }) {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   return (
     <div className="min-h-screen bg-cream text-ink">
+      <DailyReminder />
       <div className="max-w-md mx-auto px-4 pt-4 pb-16">
         {!isHome && (
           <Link to="/" className="inline-flex items-center gap-1 mb-4 bg-white shadow-sm rounded-full pl-2 pr-4 py-1.5 font-bold text-ink/70 hover:text-ink active:scale-95 transition">
