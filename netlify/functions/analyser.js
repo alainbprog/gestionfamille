@@ -78,33 +78,34 @@ exports.handler = async (event) => {
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODELE}:generateContent`;
-    const r = await fetch(url, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-goog-api-key": cle
-      },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEME }] },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { inline_data: { mime_type: mimeType, data } },
-              { text: "Analyse cette assiette et renvoie les aliments détectés avec leurs estimations nutritionnelles." }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: "application/json",
-          responseSchema: SCHEMA
+    const corps = JSON.stringify({
+      systemInstruction: { parts: [{ text: SYSTEME }] },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inline_data: { mime_type: mimeType, data } },
+            { text: "Analyse cette assiette et renvoie les aliments détectés avec leurs estimations nutritionnelles." }
+          ]
         }
-      })
+      ],
+      generationConfig: {
+        temperature: 0.2,
+        responseMimeType: "application/json",
+        responseSchema: SCHEMA
+      }
     });
+    // Réessais sur surcharge temporaire (503) ou quota (429)
+    let r, detail = "";
+    for (let essai = 0; essai < 4; essai++) {
+      r = await fetch(url, { method: "POST", headers: { "content-type": "application/json", "x-goog-api-key": cle }, body: corps });
+      if (r.ok) break;
+      detail = await r.text();
+      if (r.status !== 503 && r.status !== 429) break;
+      if (essai < 3) await new Promise((res) => setTimeout(res, 1200 * (essai + 1)));
+    }
 
     if (!r.ok) {
-      const detail = await r.text();
       return reponse(502, { erreur: "api_erreur", message: "Erreur de l'API Gemini.", statut: r.status, detail: detail.slice(0, 500) });
     }
 
