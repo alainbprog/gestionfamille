@@ -1,16 +1,31 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CalendarClock, CheckCircle2, X } from 'lucide-react';
+import { Bell, CalendarClock, CheckCircle2, Cake, X } from 'lucide-react';
 import { useFamily, isTaskDone } from '../context/FamilyContext';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
+
+// Vrai si la date 'YYYY-MM-DD' tombe aujourd'hui (même jour + mois, année ignorée)
+function isBirthdayToday(dateStr) {
+  if (!dateStr) return false;
+  const p = String(dateStr).split('-');
+  if (p.length < 3) return false;
+  const now = new Date();
+  return Number(p[1]) === now.getMonth() + 1 && Number(p[2]) === now.getDate();
+}
+// Âge atteint aujourd'hui si l'année de naissance est connue
+function ageToday(dateStr) {
+  const y = Number(String(dateStr).split('-')[0]);
+  if (!y || y < 1900) return null;
+  return new Date().getFullYear() - y;
+}
 
 // Petite relance affichée à CHAQUE ouverture de l'appli : RDV du jour + choses à
 // faire. Rendue dans le Layout (monté une seule fois par chargement), donc elle
 // apparaît au lancement puis se masque dès qu'on l'a vue, jusqu'à la prochaine
 // ouverture (rechargement de l'appli).
 export default function DailyReminder() {
-  const { events, todos } = useFamily();
+  const { events, todos, members, birthdays } = useFamily();
   const navigate = useNavigate();
 
   const day = todayIso();
@@ -18,7 +33,14 @@ export default function DailyReminder() {
     .filter((e) => e.date === day)
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   const dayTodos = todos.filter((t) => !isTaskDone(t) && (!t.due || t.due <= day));
-  const hasContent = dayEvents.length > 0 || dayTodos.length > 0;
+
+  // Anniversaires du jour : membres de la famille + liste d'anniversaires
+  const dayBirthdays = [
+    ...members.filter((m) => isBirthdayToday(m.birthdate)).map((m) => ({ id: 'm-' + m.id, name: m.name, date: m.birthdate })),
+    ...birthdays.filter((b) => isBirthdayToday(b.date)).map((b) => ({ id: 'b-' + b.id, name: b.name, date: b.date })),
+  ];
+
+  const hasContent = dayEvents.length > 0 || dayTodos.length > 0 || dayBirthdays.length > 0;
 
   // S'affiche au montage (= ouverture de l'appli) s'il y a quelque chose à rappeler.
   const [open, setOpen] = useState(hasContent);
@@ -43,6 +65,29 @@ export default function DailyReminder() {
           </div>
           <button onClick={dismiss} className="text-ink/40 hover:text-ink" aria-label="Fermer"><X /></button>
         </div>
+
+        {dayBirthdays.length > 0 && (
+          <div>
+            <h4 className="font-bold text-sm text-ink/60 mb-2 flex items-center gap-1.5">
+              <Cake size={16} className="text-brand-500" /> Anniversaire{dayBirthdays.length > 1 ? 's' : ''} du jour
+            </h4>
+            <ul className="space-y-2">
+              {dayBirthdays.map((b) => {
+                const age = ageToday(b.date);
+                return (
+                  <li key={b.id}>
+                    <button onClick={() => go('/anniversaires')} className="w-full text-left bg-pink-50 rounded-2xl px-3 py-2.5 active:scale-[0.98] transition">
+                      <span className="font-bold text-ink">🎂 {b.name}</span>
+                      <span className="block text-xs text-ink/50 mt-0.5">
+                        {age != null ? `${age} ans aujourd’hui — pense à souhaiter !` : 'C’est son anniversaire — pense à souhaiter !'}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         {dayEvents.length > 0 && (
           <div>
