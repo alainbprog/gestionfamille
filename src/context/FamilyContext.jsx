@@ -439,8 +439,11 @@ export function FamilyProvider({ children }) {
   };
 
   // --- Notes ---
-  const addNote = (text) =>
-    update('notes', (list) => [{ id: uid(), text, createdAt: Date.now() }, ...list]);
+  // Accepte une chaîne (note texte) ou un objet { text?, drawing? } (note manuscrite)
+  const addNote = (note) => {
+    const base = typeof note === 'string' ? { text: note } : (note || {});
+    update('notes', (list) => [{ id: uid(), text: '', drawing: '', createdAt: Date.now(), ...base }, ...list]);
+  };
   const removeNote = (id) => update('notes', (list) => list.filter((n) => n.id !== id));
 
   // --- Recettes ---
