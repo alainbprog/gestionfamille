@@ -1,4 +1,5 @@
-import { HeartPulse, Minus, Plus, Droplet } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { HeartPulse, Minus, Plus, Droplet, Flower2, ChevronRight } from 'lucide-react';
 import { useFamily } from '../context/FamilyContext';
 
 const MOODS = ['😀', '🙂', '😐', '😕', '😴', '😢'];
@@ -18,6 +19,22 @@ export default function BienEtre() {
       <p className="text-ink/50 text-sm mb-5 capitalize">
         {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
       </p>
+
+      {/* Méditation guidée (issue de l'appli bouddhisme) */}
+      <Link
+        to="/meditation"
+        className="card p-5 mb-4 flex items-center gap-4 active:scale-[0.99] transition"
+        style={{ background: 'linear-gradient(135deg,#2c2550,#4b3b7a)' }}
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+          <Flower2 size={26} className="text-amber-200" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-extrabold text-white">Méditation guidée</h2>
+          <p className="text-sm text-white/70">Séances, minuteur et respiration guidée</p>
+        </div>
+        <ChevronRight className="text-white/60 shrink-0" />
+      </Link>
 
       {/* Hydratation */}
       <section className="card p-5 mb-4">

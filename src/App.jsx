@@ -13,6 +13,7 @@ import Calories from './pages/Calories';
 import Routines from './pages/Routines';
 import Anniversaires from './pages/Anniversaires';
 import BienEtre from './pages/BienEtre';
+import Meditation from './pages/Meditation';
 import { FamilyProvider } from './context/FamilyContext';
 import DailyReminder from './components/DailyReminder';
 import VoiceCommand from './components/VoiceCommand';
@@ -55,6 +56,7 @@ function App() {
             <Route path="/routines" element={<Routines />} />
             <Route path="/anniversaires" element={<Anniversaires />} />
             <Route path="/bien-etre" element={<BienEtre />} />
+            <Route path="/meditation" element={<Meditation />} />
           </Routes>
         </Layout>
       </Router>
