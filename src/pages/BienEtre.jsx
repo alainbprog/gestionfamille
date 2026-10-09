@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { HeartPulse, Minus, Plus, Droplet, Flower2, ChevronRight } from 'lucide-react';
+import { HeartPulse, Minus, Plus, Droplet, Flower2, PersonStanding, ChevronRight } from 'lucide-react';
 import { useFamily } from '../context/FamilyContext';
 
 const MOODS = ['😀', '🙂', '😐', '😕', '😴', '😢'];
@@ -32,6 +32,22 @@ export default function BienEtre() {
         <div className="flex-1 min-w-0">
           <h2 className="font-extrabold text-white">Méditation guidée</h2>
           <p className="text-sm text-white/70">Séances, minuteur et respiration guidée</p>
+        </div>
+        <ChevronRight className="text-white/60 shrink-0" />
+      </Link>
+
+      {/* Étirements */}
+      <Link
+        to="/etirements"
+        className="card p-5 mb-4 flex items-center gap-4 active:scale-[0.99] transition"
+        style={{ background: 'linear-gradient(135deg,#2f6d5b,#4b9c7f)' }}
+      >
+        <div className="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0">
+          <PersonStanding size={26} className="text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-extrabold text-white">Étirements</h2>
+          <p className="text-sm text-white/70">40 exercices illustrés, par zone du corps</p>
         </div>
         <ChevronRight className="text-white/60 shrink-0" />
       </Link>

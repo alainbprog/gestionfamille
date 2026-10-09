@@ -14,6 +14,7 @@ import Routines from './pages/Routines';
 import Anniversaires from './pages/Anniversaires';
 import BienEtre from './pages/BienEtre';
 import Meditation from './pages/Meditation';
+import Etirements from './pages/Etirements';
 import { FamilyProvider } from './context/FamilyContext';
 import DailyReminder from './components/DailyReminder';
 import VoiceCommand from './components/VoiceCommand';
@@ -57,6 +58,7 @@ function App() {
             <Route path="/anniversaires" element={<Anniversaires />} />
             <Route path="/bien-etre" element={<BienEtre />} />
             <Route path="/meditation" element={<Meditation />} />
+            <Route path="/etirements" element={<Etirements />} />
           </Routes>
         </Layout>
       </Router>

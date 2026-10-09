@@ -1,0 +1,3 @@
+# Fallback SPA : les chemins sans fichier correspondant renvoient l'app React.
+# Les fichiers statiques (calories.html, meditation.html, assets, images) sont servis en priorité.
+/*    /index.html    200
