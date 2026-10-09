@@ -73,7 +73,7 @@ export default function Dashboard() {
     { key: 'bienetre', label: 'Bien-être', to: '/bien-etre', emoji: '🧘‍♀️', bg: '#bfe0d0' },
     { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2' },
     { key: 'calendrier', label: 'Calendrier', to: '/agenda', emoji: '📅', bg: '#fbe7b3', badge: todayEvents },
-    { key: 'menu', label: 'Menu', to: '/menus', emoji: '🍽️', bg: '#f3c6bf' },
+    { key: 'menu', label: 'Menu de la semaine', to: '/menus', emoji: '🍽️', bg: '#f3c6bf' },
     { key: 'anniv', label: 'Anniversaires', to: '/anniversaires', emoji: '🎂', bg: '#d6e6f2', badge: annivCount },
     { key: 'notes', label: 'Notes', to: '/notes', emoji: '📝', bg: '#f6c9d3', badge: notes.length },
     { key: 'taches', label: 'Tâches', to: '/taches', emoji: '✅', bg: '#cbe6d6', badge: todosLeft },
