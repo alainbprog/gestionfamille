@@ -6,6 +6,7 @@ const STORAGE_KEY = 'tribu-data-v1';
 const REV_KEY = 'tribu-rev-v1';
 const SYNC_KEY = 'tribu-sync-v1';
 const RECIPES_SEED_KEY = 'tribu-recipes-seed-v1';
+const SHOPPING_SEED_KEY = 'tribu-shopping-seed-v1';
 const SYNC_URL = '/.netlify/functions/sync';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -17,12 +18,123 @@ export const MEMBER_COLORS = [
 ];
 
 export const SHOPPING_CATEGORIES = [
-  { key: 'fruits', label: 'Fruits & Légumes', emoji: '🥦' },
-  { key: 'frais', label: 'Produits frais', emoji: '🧀' },
+  { key: 'viande', label: 'Viandes & Poissons', emoji: '🥩' },
+  { key: 'legumes', label: 'Légumes', emoji: '🥦' },
+  { key: 'fruits', label: 'Fruits', emoji: '🍎' },
+  { key: 'feculents', label: 'Féculents & Pains', emoji: '🍞' },
+  { key: 'frais', label: 'Produits frais & Crémerie', emoji: '🧀' },
   { key: 'epicerie', label: 'Épicerie', emoji: '🥫' },
   { key: 'boissons', label: 'Boissons', emoji: '🧃' },
   { key: 'hygiene', label: 'Hygiène & Maison', emoji: '🧼' },
   { key: 'autre', label: 'Autre', emoji: '🛒' },
+];
+
+// Liste d'articles fournie par Alain (2026-10-09), classée par rayon.
+// Injectée une seule fois dans la liste de courses (voir seedShopping).
+export const SHOPPING_SEED = [
+  // Viandes & Poissons / charcuterie
+  { name: 'Paupiettes', category: 'viande' },
+  { name: 'Poulet', category: 'viande' },
+  { name: 'Thon', category: 'viande' },
+  { name: 'Steak haché', category: 'viande' },
+  { name: 'Saucisse', category: 'viande' },
+  { name: 'Jambon', category: 'viande' },
+  { name: 'Viandes', category: 'viande' },
+  { name: 'Lardons', category: 'viande' },
+  // Légumes
+  { name: 'Pomme de terre', category: 'legumes' },
+  { name: 'Carotte', category: 'legumes' },
+  { name: 'Tomates', category: 'legumes' },
+  { name: 'Courgettes', category: 'legumes' },
+  { name: 'Poivrons', category: 'legumes' },
+  { name: 'Flageolets', category: 'legumes' },
+  { name: 'Salade', category: 'legumes' },
+  { name: 'Avocat', category: 'legumes' },
+  { name: 'Légumes boîte', category: 'legumes' },
+  // Fruits
+  { name: 'Citron', category: 'fruits' },
+  { name: 'Fruits (banane, pêche)', category: 'fruits' },
+  { name: 'Raisin', category: 'fruits' },
+  // Féculents & Pains
+  { name: 'Pain de seigle', category: 'feculents' },
+  { name: 'Pain galette', category: 'feculents' },
+  { name: 'Biscotte', category: 'feculents' },
+  { name: 'Céréales fibres', category: 'feculents' },
+  { name: 'Céréales Théo', category: 'feculents' },
+  { name: 'Pain grillé', category: 'feculents' },
+  { name: 'Pain de mie ou complet', category: 'feculents' },
+  { name: 'Nouilles', category: 'feculents' },
+  { name: 'Aligot', category: 'feculents' },
+  { name: 'Brioche lolo', category: 'feculents' },
+  { name: 'Pitch', category: 'feculents' },
+  { name: 'Gâteau enfant / pain au chocolat', category: 'feculents' },
+  { name: 'Pâtes au konjac', category: 'feculents' },
+  // Produits frais & Crémerie
+  { name: 'Lait', category: 'frais' },
+  { name: 'Beurre Sylvie', category: 'frais' },
+  { name: 'Yaourts', category: 'frais' },
+  { name: 'Gruyère', category: 'frais' },
+  { name: 'Œuf', category: 'frais' },
+  { name: 'Chantilly', category: 'frais' },
+  { name: 'Surimi', category: 'frais' },
+  { name: 'Chèvre bûchette', category: 'frais' },
+  { name: 'Reblochon', category: 'frais' },
+  { name: 'Piémontaise', category: 'frais' },
+  { name: 'Galette lardon Théo', category: 'frais' },
+  { name: 'Pizza', category: 'frais' },
+  { name: 'Plat préparé', category: 'frais' },
+  // Épicerie
+  { name: 'Beurre de cacahouète', category: 'epicerie' },
+  { name: 'Café Sylvie Capucine', category: 'epicerie' },
+  { name: 'Sucrette', category: 'epicerie' },
+  { name: 'Huile pour frites', category: 'epicerie' },
+  { name: 'Cookies sans noisettes', category: 'epicerie' },
+  { name: 'Café latte', category: 'epicerie' },
+  { name: 'Ketchup', category: 'epicerie' },
+  { name: 'Amande nature', category: 'epicerie' },
+  { name: 'Vinaigre', category: 'epicerie' },
+  { name: 'Vinaigrette', category: 'epicerie' },
+  { name: 'Dosettes café', category: 'epicerie' },
+  { name: 'Compote lilou', category: 'epicerie' },
+  { name: 'Farine', category: 'epicerie' },
+  { name: 'Chips lilou', category: 'epicerie' },
+  { name: 'Maltesers', category: 'epicerie' },
+  { name: 'Capuccino Laurène', category: 'epicerie' },
+  { name: 'Sel', category: 'epicerie' },
+  { name: 'Moutarde', category: 'epicerie' },
+  { name: 'Sauce bourguignonne', category: 'epicerie' },
+  // Boissons
+  { name: 'Jus d\'orange', category: 'boissons' },
+  { name: 'Eau', category: 'boissons' },
+  { name: 'Liquide minceur', category: 'boissons' },
+  { name: 'Monster', category: 'boissons' },
+  { name: 'Coca', category: 'boissons' },
+  { name: '3 bouteilles de blanc', category: 'boissons' },
+  { name: 'Apéro', category: 'boissons' },
+  { name: 'Vin blanc', category: 'boissons' },
+  { name: 'Kir mûre', category: 'boissons' },
+  // Hygiène & Maison
+  { name: 'Éponge', category: 'hygiene' },
+  { name: 'Pastilles vaisselle', category: 'hygiene' },
+  { name: 'Liquide vaisselle', category: 'hygiene' },
+  { name: 'Mouchoirs', category: 'hygiene' },
+  { name: 'Sac à poubelle', category: 'hygiene' },
+  { name: 'Shampoing', category: 'hygiene' },
+  { name: 'Lame de rasoir', category: 'hygiene' },
+  { name: 'Dentifrice', category: 'hygiene' },
+  { name: 'Brosse à dents', category: 'hygiene' },
+  { name: 'Gel douche', category: 'hygiene' },
+  { name: 'PQ', category: 'hygiene' },
+  { name: 'Sopalin', category: 'hygiene' },
+  { name: 'Lave-vitres', category: 'hygiene' },
+  { name: 'Lavage sol', category: 'hygiene' },
+  { name: 'Shampoing poux', category: 'hygiene' },
+  { name: 'Bombe fraîcheur', category: 'hygiene' },
+  { name: 'Bombe WC', category: 'hygiene' },
+  { name: 'Anti-tache', category: 'hygiene' },
+  { name: 'Culotte menstruelle', category: 'hygiene' },
+  // Autre
+  { name: 'Bouffe du mercredi', category: 'autre' },
 ];
 
 // Jours de la semaine (pour le planning des menus)
@@ -147,11 +259,35 @@ function seedRecipes(base) {
   return next;
 }
 
+// Normalisation de nom pour dé-doublonnage (sans accents, minuscule, singulier)
+const normName = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ').replace(/s$/, '');
+
+// Injecte une fois la liste de courses fournie, sans écraser ni dupliquer.
+function seedShopping(base) {
+  try {
+    if (localStorage.getItem(SHOPPING_SEED_KEY)) return base;
+  } catch {
+    return base;
+  }
+  const existing = new Set((base.shopping || []).map((i) => normName(i.name)));
+  const toAdd = [];
+  SHOPPING_SEED.forEach((it) => {
+    const k = normName(it.name);
+    if (k && !existing.has(k)) {
+      existing.add(k);
+      toAdd.push({ id: uid(), name: it.name, qty: 1, category: it.category, done: false });
+    }
+  });
+  const next = { ...base, shopping: [...toAdd, ...(base.shopping || [])] };
+  try { localStorage.setItem(SHOPPING_SEED_KEY, '1'); } catch { /* ignore */ }
+  return next;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const base = raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData };
-    return seedRecipes(base);
+    return seedShopping(seedRecipes(base));
   } catch {
     return defaultData;
   }
