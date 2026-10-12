@@ -1,11 +1,44 @@
 import { useState } from 'react';
-import { UtensilsCrossed, Sparkles, Eraser, Sun, Moon } from 'lucide-react';
+import { UtensilsCrossed, Sparkles, Eraser, Sun, Moon, Salad } from 'lucide-react';
 import { useFamily, WEEK_DAYS } from '../context/FamilyContext';
 
 const MOMENTS = [
   { key: 'midi', label: 'Midi', icon: Sun },
   { key: 'soir', label: 'Soir', icon: Moon },
 ];
+
+// Semaine « IG bas » (index glycémique bas) — légumes privilégiés le soir.
+// Pas de féculents raffinés : légumineuses, céréales complètes, légumes, protéines maigres.
+const PLAN_IG = {
+  lundi: {
+    midi: { dish: 'Poulet grillé, quinoa & brocoli', ingredients: 'poulet, quinoa, brocoli, huile d’olive, citron' },
+    soir: { dish: 'Soupe de légumes & œuf poché', ingredients: 'courgette, poireau, carotte, œuf, bouillon' },
+  },
+  mardi: {
+    midi: { dish: 'Salade de lentilles, thon & crudités', ingredients: 'lentilles, thon, tomate, concombre, oignon rouge, huile d’olive' },
+    soir: { dish: 'Poêlée de courgettes, poivrons & pois chiches', ingredients: 'courgette, poivron, pois chiches, ail, huile d’olive' },
+  },
+  mercredi: {
+    midi: { dish: 'Saumon, boulgour & épinards', ingredients: 'saumon, boulgour, épinards, citron' },
+    soir: { dish: 'Ratatouille & œufs', ingredients: 'aubergine, courgette, poivron, tomate, oignon, œuf' },
+  },
+  jeudi: {
+    midi: { dish: 'Omelette aux champignons & salade verte', ingredients: 'œufs, champignons, salade, huile d’olive, vinaigre' },
+    soir: { dish: 'Velouté de brocoli & dés de feta', ingredients: 'brocoli, oignon, feta, bouillon' },
+  },
+  vendredi: {
+    midi: { dish: 'Dinde, lentilles corail & carottes', ingredients: 'dinde, lentilles corail, carotte, curcuma' },
+    soir: { dish: 'Gratin de chou-fleur léger', ingredients: 'chou-fleur, lait, fromage râpé, muscade' },
+  },
+  samedi: {
+    midi: { dish: 'Buddha bowl quinoa, avocat & pois chiches', ingredients: 'quinoa, avocat, pois chiches, concombre, carotte, citron' },
+    soir: { dish: 'Wok de légumes & tofu', ingredients: 'brocoli, carotte, poivron, tofu, sauce soja, sésame' },
+  },
+  dimanche: {
+    midi: { dish: 'Poulet rôti & haricots verts', ingredients: 'poulet, haricots verts, ail, huile d’olive' },
+    soir: { dish: 'Salade composée & lentilles', ingredients: 'salade, lentilles, tomate, concombre, œuf, huile d’olive' },
+  },
+};
 
 function MealField({ dayKey, moment, meal, onChange }) {
   return (
@@ -38,6 +71,23 @@ export default function Menus() {
     setTimeout(() => setAdded(null), 4000);
   };
 
+  const [planMsg, setPlanMsg] = useState(false);
+  const fillIG = () => {
+    const hasData = WEEK_DAYS.some((d) => {
+      const m = menus[d.key];
+      return m && Object.values(m).some((x) => x && (x.dish || x.ingredients));
+    });
+    if (hasData && !confirm('Remplacer le menu de la semaine par une semaine IG bas (légumes le soir) ?')) return;
+    WEEK_DAYS.forEach((d) => {
+      const p = PLAN_IG[d.key];
+      if (!p) return;
+      setMeal(d.key, 'midi', p.midi);
+      setMeal(d.key, 'soir', p.soir);
+    });
+    setPlanMsg(true);
+    setTimeout(() => setPlanMsg(false), 5000);
+  };
+
   return (
     <div>
       <header className="mb-5 flex items-start justify-between gap-3">
@@ -50,9 +100,16 @@ export default function Menus() {
       </header>
 
       <div className="flex flex-wrap gap-2 mb-5">
-        <button onClick={handleGenerate} className="btn-primary"><Sparkles size={18} /> Générer la liste de courses</button>
+        <button onClick={fillIG} className="btn-primary"><Salad size={18} /> Semaine IG bas</button>
+        <button onClick={handleGenerate} className="btn-ghost"><Sparkles size={18} /> Générer la liste de courses</button>
         <button onClick={() => { if (confirm('Effacer tous les menus de la semaine ?')) clearMenus(); }} className="btn-ghost"><Eraser size={18} /> Tout effacer</button>
       </div>
+
+      {planMsg && (
+        <div className="mb-5 p-3 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700">
+          🥗 Semaine IG bas remplie (légumes privilégiés le soir). Tu peux ajuster chaque plat, puis « Générer la liste de courses ».
+        </div>
+      )}
 
       {added !== null && (
         <div className={`mb-5 p-3 rounded-xl text-sm font-semibold ${added > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
