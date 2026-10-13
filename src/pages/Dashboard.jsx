@@ -30,6 +30,7 @@ export default function Dashboard() {
   // Rayons « soleil » : lignes du micro central vers chaque tuile
   const gridRef = useRef(null);
   const tileRefs = useRef([]);
+  const micRef = useRef(null);
   const [rays, setRays] = useState([]);
   const [hub, setHub] = useState({ x: 0, y: 0 });
 
@@ -93,9 +94,8 @@ export default function Dashboard() {
       const c = gridRef.current;
       if (!c) return;
       const cb = c.getBoundingClientRect();
-      const cx = cb.width / 2;
-      const cy = cb.height / 2;
-      setHub({ x: cx, y: cy });
+      const mb = micRef.current && micRef.current.getBoundingClientRect();
+      if (mb) setHub({ x: mb.left - cb.left + mb.width / 2, y: mb.top - cb.top + mb.height / 2 });
       const lines = tileRefs.current.filter(Boolean).map((el) => {
         const b = el.getBoundingClientRect();
         return { x: b.left - cb.left + b.width / 2, y: b.top - cb.top + b.height / 2 };
@@ -180,58 +180,56 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Barre d'idées → note rapide (sous le calendrier) */}
-      <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2">
-        <Sparkles size={18} className="text-brand-500 shrink-0" />
-        <input
-          className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
-          placeholder="Une idée, une note à garder…"
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-        />
-        <button type="submit" className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 active:scale-95" aria-label="Enregistrer">
-          <Send size={15} />
-        </button>
-      </form>
+      {/* Zone « soleil » : le champ note porte le micro, des rayons partent vers chaque tuile */}
+      <div ref={gridRef} className="relative">
+        {/* Rayons de soleil : du micro (sur le champ) vers chaque tuile */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} aria-hidden>
+          {rays.map((r, i) => (
+            <line key={i} x1={hub.x} y1={hub.y} x2={r.x} y2={r.y}
+              stroke="#b79ae0" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" opacity="0.65" />
+          ))}
+        </svg>
 
-      {/* Mes applications — le micro au centre, des rayons vers chaque tuile */}
-      <div>
-        <h2 className="font-extrabold text-ink text-lg mb-3 px-1">Mes applications</h2>
-
-        <div ref={gridRef} className="relative">
-          {/* Rayons de soleil : du micro central vers chaque tuile */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} aria-hidden>
-            {rays.map((r, i) => (
-              <line key={i} x1={hub.x} y1={hub.y} x2={r.x} y2={r.y}
-                stroke="#b79ae0" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" opacity="0.65" />
-            ))}
-          </svg>
-
-          <div className="grid grid-cols-3 gap-3 relative" style={{ zIndex: 10 }}>
-            {tiles.map((t, i) => (
-              <div key={t.key} ref={(el) => (tileRefs.current[i] = el)}>
-                <AppTile {...t} />
-              </div>
-            ))}
-          </div>
-
-          {/* Micro central */}
+        {/* Barre d'idées → note rapide, avec le micro posé dessus */}
+        <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2 relative" style={{ zIndex: 10 }}>
+          <Sparkles size={18} className="text-brand-500 shrink-0" />
+          <input
+            className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
+            placeholder="Une idée, une note à garder…"
+            value={idea}
+            onChange={(e) => setIdea(e.target.value)}
+          />
+          <button type="submit" className="w-8 h-8 rounded-full bg-black/5 hover:bg-black/10 text-ink/60 flex items-center justify-center shrink-0 active:scale-95" aria-label="Enregistrer la note">
+            <Send size={15} />
+          </button>
+          {/* Micro posé sur le champ */}
           <button
+            type="button"
+            ref={micRef}
             onClick={startVoice}
             aria-label="Tout noter avec le micro"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            className="shrink-0"
             style={{ zIndex: 20 }}
           >
-            <span className={`relative flex items-center justify-center w-16 h-16 rounded-full text-white shadow-xl ring-4 ring-white transition active:scale-95 ${voiceStatus === 'listening' ? 'bg-red-500' : 'bg-brand-600 hover:bg-brand-700'}`}>
+            <span className={`relative flex items-center justify-center w-12 h-12 rounded-full text-white shadow-lg ring-4 ring-white transition active:scale-95 ${voiceStatus === 'listening' ? 'bg-red-500' : 'bg-brand-600 hover:bg-brand-700'}`}>
               {voiceStatus === 'listening' && <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-60" />}
-              {voiceStatus === 'processing' ? <Loader2 size={26} className="animate-spin" /> : <Mic size={26} />}
+              {voiceStatus === 'processing' ? <Loader2 size={22} className="animate-spin" /> : <Mic size={22} />}
             </span>
           </button>
-        </div>
+        </form>
 
-        <p className="text-center text-sm text-ink/55 font-semibold mt-3">
+        <p className="text-center text-sm text-ink/55 font-semibold mt-2 mb-4">
           🎤 Appuie sur le micro et parle : j’ajoute au bon endroit (rendez-vous, courses, tâches, notes…)
         </p>
+
+        <h2 className="font-extrabold text-ink text-lg mb-3 px-1">Mes applications</h2>
+        <div className="grid grid-cols-3 gap-3 relative" style={{ zIndex: 10 }}>
+          {tiles.map((t, i) => (
+            <div key={t.key} ref={(el) => (tileRefs.current[i] = el)}>
+              <AppTile {...t} />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
