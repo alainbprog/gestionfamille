@@ -17,7 +17,7 @@ import Meditation from './pages/Meditation';
 import Etirements from './pages/Etirements';
 import { FamilyProvider } from './context/FamilyContext';
 import DailyReminder from './components/DailyReminder';
-import VoiceCommand from './components/VoiceCommand';
+import { VoiceProvider } from './components/VoiceProvider';
 
 function Layout({ children }) {
   const { pathname } = useLocation();
@@ -25,7 +25,6 @@ function Layout({ children }) {
   return (
     <div className="min-h-screen bg-cream text-ink">
       <DailyReminder />
-      <VoiceCommand />
       <div className="max-w-md mx-auto px-4 pt-4 pb-16">
         {!isHome && (
           <Link to="/" className="inline-flex items-center gap-1 mb-4 bg-white shadow-sm rounded-full pl-2 pr-4 py-1.5 font-bold text-ink/70 hover:text-ink active:scale-95 transition">
@@ -42,6 +41,7 @@ function App() {
   return (
     <FamilyProvider>
       <Router>
+        <VoiceProvider>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />
@@ -61,6 +61,7 @@ function App() {
             <Route path="/etirements" element={<Etirements />} />
           </Routes>
         </Layout>
+        </VoiceProvider>
       </Router>
     </FamilyProvider>
   );

@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Bell, Send, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Bell, Send, Sparkles, ChevronLeft, ChevronRight, Mic, Loader2 } from 'lucide-react';
 import { useFamily, isTaskDone } from '../context/FamilyContext';
 import AppTile from '../components/AppTile';
 import { Avatar } from '../components/MemberBadge';
+import { useVoice } from '../components/VoiceProvider';
 
 const DAY_LETTERS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
@@ -22,8 +23,15 @@ function startOfWeek(base) {
 export default function Dashboard() {
   const { shopping, events, todos, members, memberById, notes, recipes, birthdays, addNote } = useFamily();
   const navigate = useNavigate();
+  const { start: startVoice, status: voiceStatus } = useVoice();
   const [idea, setIdea] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
+
+  // Rayons « soleil » : lignes du micro central vers chaque tuile
+  const gridRef = useRef(null);
+  const tileRefs = useRef([]);
+  const [rays, setRays] = useState([]);
+  const [hub, setHub] = useState({ x: 0, y: 0 });
 
   const today = new Date();
   const todayIso = iso(today);
@@ -73,11 +81,33 @@ export default function Dashboard() {
     { key: 'bienetre', label: 'Bien-être', to: '/bien-etre', emoji: '🧘‍♀️', bg: '#bfe0d0' },
     { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2' },
     { key: 'calendrier', label: 'Calendrier', to: '/agenda', emoji: '📅', bg: '#fbe7b3', badge: todayEvents },
+    { key: 'rdv', label: 'Rendez-vous', to: '/agenda', emoji: '🗓️', bg: '#f7d6c0', badge: todayEvents },
     { key: 'menu', label: 'Menu de la semaine', to: '/menus', emoji: '🍽️', bg: '#f3c6bf' },
     { key: 'anniv', label: 'Anniversaires', to: '/anniversaires', emoji: '🎂', bg: '#d6e6f2', badge: annivCount },
     { key: 'notes', label: 'Notes', to: '/notes', emoji: '📝', bg: '#f6c9d3', badge: notes.length },
     { key: 'taches', label: 'Tâches', to: '/taches', emoji: '✅', bg: '#cbe6d6', badge: todosLeft },
   ];
+
+  useLayoutEffect(() => {
+    const compute = () => {
+      const c = gridRef.current;
+      if (!c) return;
+      const cb = c.getBoundingClientRect();
+      const cx = cb.width / 2;
+      const cy = cb.height / 2;
+      setHub({ x: cx, y: cy });
+      const lines = tileRefs.current.filter(Boolean).map((el) => {
+        const b = el.getBoundingClientRect();
+        return { x: b.left - cb.left + b.width / 2, y: b.top - cb.top + b.height / 2 };
+      });
+      setRays(lines);
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    if (gridRef.current) ro.observe(gridRef.current);
+    window.addEventListener('resize', compute);
+    return () => { ro.disconnect(); window.removeEventListener('resize', compute); };
+  }, [tiles.length]);
 
   return (
     <div className="space-y-5">
@@ -164,12 +194,44 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Mes applications */}
+      {/* Mes applications — le micro au centre, des rayons vers chaque tuile */}
       <div>
         <h2 className="font-extrabold text-ink text-lg mb-3 px-1">Mes applications</h2>
-        <div className="grid grid-cols-3 gap-3">
-          {tiles.map((t) => <AppTile key={t.key} {...t} />)}
+
+        <div ref={gridRef} className="relative">
+          {/* Rayons de soleil : du micro central vers chaque tuile */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} aria-hidden>
+            {rays.map((r, i) => (
+              <line key={i} x1={hub.x} y1={hub.y} x2={r.x} y2={r.y}
+                stroke="#b79ae0" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" opacity="0.65" />
+            ))}
+          </svg>
+
+          <div className="grid grid-cols-3 gap-3 relative" style={{ zIndex: 10 }}>
+            {tiles.map((t, i) => (
+              <div key={t.key} ref={(el) => (tileRefs.current[i] = el)}>
+                <AppTile {...t} />
+              </div>
+            ))}
+          </div>
+
+          {/* Micro central */}
+          <button
+            onClick={startVoice}
+            aria-label="Tout noter avec le micro"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            style={{ zIndex: 20 }}
+          >
+            <span className={`relative flex items-center justify-center w-16 h-16 rounded-full text-white shadow-xl ring-4 ring-white transition active:scale-95 ${voiceStatus === 'listening' ? 'bg-red-500' : 'bg-brand-600 hover:bg-brand-700'}`}>
+              {voiceStatus === 'listening' && <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-60" />}
+              {voiceStatus === 'processing' ? <Loader2 size={26} className="animate-spin" /> : <Mic size={26} />}
+            </span>
+          </button>
         </div>
+
+        <p className="text-center text-sm text-ink/55 font-semibold mt-3">
+          🎤 Appuie sur le micro et parle : j’ajoute au bon endroit (rendez-vous, courses, tâches, notes…)
+        </p>
       </div>
     </div>
   );
