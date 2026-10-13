@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Bell, Send, Sparkles, ChevronLeft, ChevronRight, Mic, Loader2 } from 'lucide-react';
 import { useFamily, isTaskDone } from '../context/FamilyContext';
@@ -26,13 +26,6 @@ export default function Dashboard() {
   const { start: startVoice, status: voiceStatus } = useVoice();
   const [idea, setIdea] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
-
-  // Rayons « soleil » : lignes du micro central vers chaque tuile
-  const gridRef = useRef(null);
-  const tileRefs = useRef([]);
-  const micRef = useRef(null);
-  const [rays, setRays] = useState([]);
-  const [hub, setHub] = useState({ x: 0, y: 0 });
 
   const today = new Date();
   const todayIso = iso(today);
@@ -88,26 +81,6 @@ export default function Dashboard() {
     { key: 'notes', label: 'Notes', to: '/notes', emoji: '📝', bg: '#f6c9d3', badge: notes.length },
     { key: 'taches', label: 'Tâches', to: '/taches', emoji: '✅', bg: '#cbe6d6', badge: todosLeft },
   ];
-
-  useLayoutEffect(() => {
-    const compute = () => {
-      const c = gridRef.current;
-      if (!c) return;
-      const cb = c.getBoundingClientRect();
-      const mb = micRef.current && micRef.current.getBoundingClientRect();
-      if (mb) setHub({ x: mb.left - cb.left + mb.width / 2, y: mb.top - cb.top + mb.height / 2 });
-      const lines = tileRefs.current.filter(Boolean).map((el) => {
-        const b = el.getBoundingClientRect();
-        return { x: b.left - cb.left + b.width / 2, y: b.top - cb.top + b.height / 2 };
-      });
-      setRays(lines);
-    };
-    compute();
-    const ro = new ResizeObserver(compute);
-    if (gridRef.current) ro.observe(gridRef.current);
-    window.addEventListener('resize', compute);
-    return () => { ro.disconnect(); window.removeEventListener('resize', compute); };
-  }, [tiles.length]);
 
   return (
     <div className="space-y-5">
@@ -180,18 +153,9 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Zone « soleil » : le champ note porte le micro, des rayons partent vers chaque tuile */}
-      <div ref={gridRef} className="relative">
-        {/* Rayons de soleil : du micro (sur le champ) vers chaque tuile */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 0 }} aria-hidden>
-          {rays.map((r, i) => (
-            <line key={i} x1={hub.x} y1={hub.y} x2={r.x} y2={r.y}
-              stroke="#b79ae0" strokeWidth="2" strokeDasharray="2 5" strokeLinecap="round" opacity="0.65" />
-          ))}
-        </svg>
-
+      <div>
         {/* Barre d'idées → note rapide, avec le micro posé dessus */}
-        <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2 relative" style={{ zIndex: 10 }}>
+        <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2 relative">
           <Sparkles size={18} className="text-brand-500 shrink-0" />
           <input
             className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
@@ -205,11 +169,9 @@ export default function Dashboard() {
           {/* Micro posé sur le champ */}
           <button
             type="button"
-            ref={micRef}
             onClick={startVoice}
             aria-label="Tout noter avec le micro"
             className="shrink-0"
-            style={{ zIndex: 20 }}
           >
             <span className={`relative flex items-center justify-center w-12 h-12 rounded-full text-white shadow-lg ring-4 ring-white transition active:scale-95 ${voiceStatus === 'listening' ? 'bg-red-500' : 'bg-brand-600 hover:bg-brand-700'}`}>
               {voiceStatus === 'listening' && <span className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-60" />}
@@ -223,12 +185,8 @@ export default function Dashboard() {
         </p>
 
         <h2 className="font-extrabold text-ink text-lg mb-3 px-1">Mes applications</h2>
-        <div className="grid grid-cols-3 gap-3 relative" style={{ zIndex: 10 }}>
-          {tiles.map((t, i) => (
-            <div key={t.key} ref={(el) => (tileRefs.current[i] = el)}>
-              <AppTile {...t} />
-            </div>
-          ))}
+        <div className="grid grid-cols-3 gap-3">
+          {tiles.map((t) => <AppTile key={t.key} {...t} />)}
         </div>
       </div>
     </div>
