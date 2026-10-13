@@ -136,20 +136,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Barre d'idées → note rapide */}
-      <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2">
-        <Sparkles size={18} className="text-brand-500 shrink-0" />
-        <input
-          className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
-          placeholder="Une idée, une note à garder…"
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-        />
-        <button type="submit" className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 active:scale-95" aria-label="Enregistrer">
-          <Send size={15} />
-        </button>
-      </form>
-
       {/* Bande calendrier de la semaine */}
       <div className="card p-3">
         <div className="flex items-center justify-between mb-2 px-1">
@@ -193,6 +179,20 @@ export default function Dashboard() {
           })}
         </div>
       </div>
+
+      {/* Barre d'idées → note rapide (sous le calendrier) */}
+      <form onSubmit={submitIdea} className="card px-3 py-2 flex items-center gap-2">
+        <Sparkles size={18} className="text-brand-500 shrink-0" />
+        <input
+          className="flex-1 bg-transparent outline-none text-sm py-1.5 placeholder:text-ink/40"
+          placeholder="Une idée, une note à garder…"
+          value={idea}
+          onChange={(e) => setIdea(e.target.value)}
+        />
+        <button type="submit" className="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center shrink-0 active:scale-95" aria-label="Enregistrer">
+          <Send size={15} />
+        </button>
+      </form>
 
       {/* Mes applications — le micro au centre, des rayons vers chaque tuile */}
       <div>
