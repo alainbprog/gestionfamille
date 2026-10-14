@@ -3,6 +3,7 @@ import { ChevronLeft } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Courses from './pages/Courses';
 import Agenda from './pages/Agenda';
+import Calendrier from './pages/Calendrier';
 import Menus from './pages/Menus';
 import Taches from './pages/Taches';
 import Famille from './pages/Famille';
@@ -47,6 +48,7 @@ function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/agenda" element={<Agenda />} />
+            <Route path="/calendrier" element={<Calendrier />} />
             <Route path="/menus" element={<Menus />} />
             <Route path="/taches" element={<Taches />} />
             <Route path="/famille" element={<Famille />} />

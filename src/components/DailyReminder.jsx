@@ -20,6 +20,17 @@ function ageToday(dateStr) {
   return new Date().getFullYear() - y;
 }
 
+// Libellé relatif d'une date (demain, dans X jours, …)
+function eventDateLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const diff = Math.round((d - t) / 86400000);
+  const base = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (diff === 1) return `demain · ${base}`;
+  if (diff > 1) return `dans ${diff} jours · ${base}`;
+  return base;
+}
+
 // Petite relance affichée à CHAQUE ouverture de l'appli : RDV du jour + choses à
 // faire. Rendue dans le Layout (monté une seule fois par chargement), donc elle
 // apparaît au lancement puis se masque dès qu'on l'a vue, jusqu'à la prochaine
@@ -34,13 +45,18 @@ export default function DailyReminder() {
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   const dayTodos = todos.filter((t) => !isTaskDone(t) && (!t.due || t.due <= day));
 
+  // Prochain rendez-vous à venir (strictement après aujourd'hui), le plus proche
+  const nextEvent = [...events]
+    .filter((e) => e.date > day)
+    .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0] || null;
+
   // Anniversaires du jour : membres de la famille + liste d'anniversaires
   const dayBirthdays = [
     ...members.filter((m) => isBirthdayToday(m.birthdate)).map((m) => ({ id: 'm-' + m.id, name: m.name, date: m.birthdate })),
     ...birthdays.filter((b) => isBirthdayToday(b.date)).map((b) => ({ id: 'b-' + b.id, name: b.name, date: b.date })),
   ];
 
-  const hasContent = dayEvents.length > 0 || dayTodos.length > 0 || dayBirthdays.length > 0;
+  const hasContent = dayEvents.length > 0 || dayTodos.length > 0 || dayBirthdays.length > 0 || !!nextEvent;
 
   // S'affiche au montage (= ouverture de l'appli) s'il y a quelque chose à rappeler.
   const [open, setOpen] = useState(hasContent);
@@ -108,6 +124,20 @@ export default function DailyReminder() {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+
+        {nextEvent && (
+          <div>
+            <h4 className="font-bold text-sm text-ink/60 mb-2 flex items-center gap-1.5">
+              <CalendarClock size={16} className="text-brand-500" /> Prochain rendez-vous
+            </h4>
+            <button onClick={() => go('/agenda')} className="w-full text-left bg-brand-50 rounded-2xl px-3 py-2.5 active:scale-[0.98] transition">
+              <span className="font-bold text-ink">{nextEvent.title}</span>
+              <span className="block text-xs text-ink/50 mt-0.5 capitalize">
+                {eventDateLabel(nextEvent.date)}{nextEvent.time ? ` · 🕒 ${nextEvent.time}` : ''}{nextEvent.location ? ` · 📍 ${nextEvent.location}` : ''}
+              </span>
+            </button>
           </div>
         )}
 

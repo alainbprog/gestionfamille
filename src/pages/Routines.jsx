@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { Plus, Trash2, AlarmClock, Check, Repeat } from 'lucide-react';
-import { useFamily, isTaskDone, RECURRENCES } from '../context/FamilyContext';
+import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
-// Une routine = une tâche récurrente (quotidienne ou hebdomadaire)
+const dayLabel = (key) => WEEK_DAYS.find((d) => d.key === key)?.label;
+
+// Une routine = une tâche récurrente (chaque jour, chaque semaine, ou tous les 15 jours)
 export default function Routines() {
   const { todos, members, addTodo, toggleTodo, removeTodo, memberById } = useFamily();
   const [text, setText] = useState('');
   const [recurrence, setRecurrence] = useState('quotidienne');
+  const [day, setDay] = useState('lundi');
   const [memberId, setMemberId] = useState('');
 
+  const needsDay = recurrence === 'hebdomadaire' || recurrence === 'quinzomadaire';
   const routines = todos.filter((t) => t.recurrence && t.recurrence !== 'none');
 
   const submit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addTodo({ text: text.trim(), recurrence, memberId: memberId || null });
+    addTodo({ text: text.trim(), recurrence, day: needsDay ? day : '', memberId: memberId || null });
     setText('');
   };
 
@@ -32,7 +36,13 @@ export default function Routines() {
           <select className="input sm:w-44" value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
             <option value="quotidienne">{RECURRENCES.quotidienne}</option>
             <option value="hebdomadaire">{RECURRENCES.hebdomadaire}</option>
+            <option value="quinzomadaire">{RECURRENCES.quinzomadaire}</option>
           </select>
+          {needsDay && (
+            <select className="input sm:w-36" value={day} onChange={(e) => setDay(e.target.value)} aria-label="Jour">
+              {WEEK_DAYS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+            </select>
+          )}
           <select className="input sm:flex-1" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
             <option value="">Pour qui ? (optionnel)</option>
             {members.map((m) => <option key={m.id} value={m.id}>{m.emoji} {m.name}</option>)}
@@ -62,7 +72,7 @@ export default function Routines() {
                 <div className="flex-1 min-w-0">
                   <p className={`font-semibold ${done ? 'line-through text-ink/40' : ''}`}>{t.text}</p>
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 inline-flex items-center gap-1 mt-0.5">
-                    <Repeat size={11} /> {RECURRENCES[t.recurrence]}
+                    <Repeat size={11} /> {RECURRENCES[t.recurrence]}{t.day ? ` · ${dayLabel(t.day)}` : ''}
                   </span>
                 </div>
                 {t.memberId && <Avatar member={memberById(t.memberId)} size={28} />}
