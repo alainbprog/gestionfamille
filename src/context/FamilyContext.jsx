@@ -153,6 +153,7 @@ export const RECURRENCES = {
   quotidienne: 'Chaque jour',
   hebdomadaire: 'Chaque semaine',
   quinzomadaire: 'Tous les 15 jours',
+  mensuelle: '1 fois par mois',
 };
 
 // Types de repas (pour classer les recettes sur la journée)
@@ -247,6 +248,12 @@ function fortnightStartStr() {
   return start.toISOString().slice(0, 10);
 }
 
+// Premier jour du mois en cours (pour la récurrence mensuelle)
+function monthStartStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
+
 // Une tâche récurrente est "faite" seulement pour la période en cours
 export function isTaskDone(t) {
   if (!t.recurrence || t.recurrence === 'none') return t.done;
@@ -254,6 +261,7 @@ export function isTaskDone(t) {
   if (t.recurrence === 'quotidienne') return t.lastDone === todayStr();
   if (t.recurrence === 'hebdomadaire') return t.lastDone >= weekStartStr();
   if (t.recurrence === 'quinzomadaire') return t.lastDone >= fortnightStartStr();
+  if (t.recurrence === 'mensuelle') return t.lastDone >= monthStartStr();
   return t.done;
 }
 
@@ -404,7 +412,7 @@ export function FamilyProvider({ children }) {
 
   // --- To-do ---
   const addTodo = (t) =>
-    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', recurrence: 'none', day: '', lastDone: '', ...t }, ...list]);
+    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', recurrence: 'none', day: '', monthDay: '', time: '', lastDone: '', ...t }, ...list]);
   const toggleTodo = (id) =>
     update('todos', (list) => list.map((t) => {
       if (t.id !== id) return t;

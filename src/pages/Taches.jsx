@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Plus, Trash2, ListTodo, Check, Repeat } from 'lucide-react';
-import { useFamily, isTaskDone, RECURRENCES } from '../context/FamilyContext';
+import { Plus, Trash2, ListTodo, Check, Repeat, Clock } from 'lucide-react';
+import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
 const PRIORITIES = {
@@ -9,20 +9,46 @@ const PRIORITIES = {
   basse: { label: 'Basse', color: 'bg-gray-100 text-gray-600' },
 };
 
+const dayLabel = (key) => WEEK_DAYS.find((d) => d.key === key)?.label;
+
+// Résumé de la cadence/planning d'une tâche (ex. « Chaque semaine · Mardi · 🕒 08:00 »)
+function planLabel(t) {
+  const parts = [];
+  if (t.recurrence && t.recurrence !== 'none') parts.push(RECURRENCES[t.recurrence]);
+  if (t.day) parts.push(dayLabel(t.day));
+  if (t.monthDay) parts.push(`le ${t.monthDay}`);
+  return parts.join(' · ');
+}
+
 export default function Taches() {
   const { todos, members, addTodo, toggleTodo, removeTodo, memberById } = useFamily();
   const [text, setText] = useState('');
   const [memberId, setMemberId] = useState('');
   const [priority, setPriority] = useState('normale');
   const [recurrence, setRecurrence] = useState('none');
+  const [day, setDay] = useState('lundi');
+  const [monthDay, setMonthDay] = useState('1');
+  const [time, setTime] = useState('');
   const [filter, setFilter] = useState('all'); // all | mine-by-member id
+
+  const needsWeekday = recurrence === 'hebdomadaire' || recurrence === 'quinzomadaire';
+  const needsMonthDay = recurrence === 'mensuelle';
 
   const submit = (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    addTodo({ text: text.trim(), memberId: memberId || null, priority, recurrence });
+    addTodo({
+      text: text.trim(),
+      memberId: memberId || null,
+      priority,
+      recurrence,
+      day: needsWeekday ? day : '',
+      monthDay: needsMonthDay ? monthDay : '',
+      time,
+    });
     setText('');
     setRecurrence('none');
+    setTime('');
   };
 
   const priorityRank = { haute: 0, normale: 1, basse: 2 };
@@ -41,8 +67,8 @@ export default function Taches() {
         </p>
       </header>
 
-      <form onSubmit={submit} className="card p-4 mb-5">
-        <input className="input mb-2" placeholder="Nouvelle tâche…" value={text} onChange={(e) => setText(e.target.value)} />
+      <form onSubmit={submit} className="card p-4 mb-5 space-y-2">
+        <input className="input" placeholder="Nouvelle tâche…" value={text} onChange={(e) => setText(e.target.value)} />
         <div className="flex flex-col sm:flex-row gap-2">
           <select className="input sm:flex-1" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
             <option value="">Assigner à… (optionnel)</option>
@@ -51,11 +77,24 @@ export default function Taches() {
           <select className="input sm:w-40" value={priority} onChange={(e) => setPriority(e.target.value)}>
             {Object.entries(PRIORITIES).map(([k, v]) => <option key={k} value={k}>Priorité {v.label.toLowerCase()}</option>)}
           </select>
-          <select className="input sm:w-40" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} aria-label="Récurrence">
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <select className="input sm:flex-1" value={recurrence} onChange={(e) => setRecurrence(e.target.value)} aria-label="Cadence">
             {Object.entries(RECURRENCES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
-          <button type="submit" className="btn-primary"><Plus size={18} /> Ajouter</button>
+          {needsWeekday && (
+            <select className="input sm:w-36" value={day} onChange={(e) => setDay(e.target.value)} aria-label="Jour de la semaine">
+              {WEEK_DAYS.map((d) => <option key={d.key} value={d.key}>{d.label}</option>)}
+            </select>
+          )}
+          {needsMonthDay && (
+            <select className="input sm:w-36" value={monthDay} onChange={(e) => setMonthDay(e.target.value)} aria-label="Jour du mois">
+              {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((n) => <option key={n} value={n}>le {n}</option>)}
+            </select>
+          )}
+          <input type="time" className="input sm:w-32" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Heure" title="Heure (optionnel)" />
         </div>
+        <button type="submit" className="btn-primary w-full sm:w-auto"><Plus size={18} /> Ajouter</button>
       </form>
 
       {/* Filtres par membre */}
@@ -84,11 +123,16 @@ export default function Taches() {
             <button onClick={() => toggleTodo(t.id)} className="w-6 h-6 rounded-full border-2 border-gray-300 hover:border-brand-500 shrink-0 transition" aria-label="Terminer" />
             <div className="flex-1 min-w-0">
               <p className="font-semibold">{t.text}</p>
-              <div className="flex items-center gap-2 mt-0.5">
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
                 <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${PRIORITIES[t.priority].color}`}>{PRIORITIES[t.priority].label}</span>
                 {t.recurrence && t.recurrence !== 'none' && (
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-50 text-brand-700 inline-flex items-center gap-1">
-                    <Repeat size={11} /> {RECURRENCES[t.recurrence]}
+                    <Repeat size={11} /> {planLabel(t)}
+                  </span>
+                )}
+                {t.time && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 inline-flex items-center gap-1">
+                    <Clock size={11} /> {t.time}
                   </span>
                 )}
               </div>

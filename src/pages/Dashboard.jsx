@@ -31,6 +31,7 @@ export default function Dashboard() {
   const todayIso = iso(today);
   const shoppingLeft = shopping.filter((i) => !i.done).length;
   const todosLeft = todos.filter((t) => !isTaskDone(t)).length;
+  const routinesCount = todos.filter((t) => t.recurrence && t.recurrence !== 'none').length;
   const todayEvents = events.filter((e) => e.date === todayIso).length;
   const upcomingEvents = events.filter((e) => e.date >= todayIso).length;
 
@@ -74,7 +75,7 @@ export default function Dashboard() {
     { key: 'frigo', label: 'Mon frigo', to: '/frigo', emoji: '🧊', bg: '#cfe8f3' },
     { key: 'calories', label: 'Calories', to: '/calories', emoji: '🍽️', bg: '#f3d9c6' },
     { key: 'bienetre', label: 'Bien-être', to: '/bien-etre', emoji: '🧘‍♀️', bg: '#bfe0d0' },
-    { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2' },
+    { key: 'routines', label: 'Routines', to: '/routines', emoji: '⏰', bg: '#f6ddc2', badge: routinesCount },
     { key: 'calendrier', label: 'Calendrier', to: '/calendrier', emoji: '📅', bg: '#fbe7b3' },
     { key: 'rdv', label: 'Rendez-vous', to: '/agenda', emoji: '🗓️', bg: '#f7d6c0', badge: upcomingEvents },
     { key: 'menu', label: 'Menu de la semaine', to: '/menus', emoji: '🍽️', bg: '#f3c6bf' },
