@@ -254,15 +254,110 @@ function monthStartStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 
-// Une tâche récurrente est "faite" seulement pour la période en cours
+/* ----- Planification ancrée sur la date d'entrée (start) + jour choisi ----- */
+const DAY_IDX = { dimanche: 0, lundi: 1, mardi: 2, mercredi: 3, jeudi: 4, vendredi: 5, samedi: 6 };
+const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+export const isoOf = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const parseISO = (s) => startOfDay(new Date(s + 'T00:00:00'));
+const monthOcc = (y, m, dom) => { const last = new Date(y, m + 1, 0).getDate(); return new Date(y, m, Math.min(dom, last)); };
+
+// 1re occurrence (Date) d'une récurrence par jour de semaine : le <jour> au plus tard égal à la date d'entrée
+function weekdayAnchor(t) {
+  const idx = DAY_IDX[t.day];
+  const start = t.start ? parseISO(t.start) : startOfDay(new Date());
+  const back = (start.getDay() - idx + 7) % 7;
+  return addDays(start, -back);
+}
+
+// Peut-on planifier précisément (champs requis présents) ?
+function hasSchedule(t) {
+  if (t.recurrence === 'quotidienne') return true;
+  if (t.recurrence === 'hebdomadaire' || t.recurrence === 'quinzomadaire') return !!t.day;
+  if (t.recurrence === 'mensuelle') return !!t.monthDay;
+  return false;
+}
+
+// Prochaine occurrence (Date) à partir de `from` (incluse)
+export function nextOccurrence(t, from = new Date()) {
+  const today = startOfDay(from);
+  if (!t.recurrence || t.recurrence === 'none') return t.due ? parseISO(t.due) : null;
+  if (t.recurrence === 'quotidienne') return today;
+  if ((t.recurrence === 'hebdomadaire' || t.recurrence === 'quinzomadaire') && t.day) {
+    const step = t.recurrence === 'quinzomadaire' ? 14 : 7;
+    let occ = weekdayAnchor(t);
+    while (occ < today) occ = addDays(occ, step);
+    return occ;
+  }
+  if (t.recurrence === 'mensuelle' && t.monthDay) {
+    const start = t.start ? parseISO(t.start) : today;
+    let y = start.getFullYear(), m = start.getMonth();
+    let occ = monthOcc(y, m, Number(t.monthDay));
+    while (occ < today) { m += 1; occ = monthOcc(y + Math.floor(m / 12), ((m % 12) + 12) % 12, Number(t.monthDay)); }
+    return occ;
+  }
+  return null;
+}
+
+// Dernière occurrence (Date) <= aujourd'hui (null si pas encore commencé)
+export function prevOccurrence(t, from = new Date()) {
+  const today = startOfDay(from);
+  if (t.recurrence === 'quotidienne') return today;
+  if ((t.recurrence === 'hebdomadaire' || t.recurrence === 'quinzomadaire') && t.day) {
+    const step = t.recurrence === 'quinzomadaire' ? 14 : 7;
+    let occ = weekdayAnchor(t);
+    if (occ > today) return null;
+    while (addDays(occ, step) <= today) occ = addDays(occ, step);
+    return occ;
+  }
+  if (t.recurrence === 'mensuelle' && t.monthDay) {
+    const start = t.start ? parseISO(t.start) : today;
+    let occ = monthOcc(start.getFullYear(), start.getMonth(), Number(t.monthDay));
+    if (occ > today) return null;
+    for (;;) {
+      const m = occ.getMonth() + 1;
+      const n = monthOcc(occ.getFullYear() + Math.floor(m / 12), ((m % 12) + 12) % 12, Number(t.monthDay));
+      if (n <= today) occ = n; else break;
+    }
+    return occ;
+  }
+  return null;
+}
+
+// Une tâche récurrente est "faite" seulement pour la période/occurrence en cours
 export function isTaskDone(t) {
   if (!t.recurrence || t.recurrence === 'none') return t.done;
   if (!t.lastDone) return false;
+  if (hasSchedule(t)) {
+    const prev = prevOccurrence(t);
+    if (!prev) return false;
+    return t.lastDone >= isoOf(prev);
+  }
+  // Repli (anciennes routines sans jour/mois) : logique par période
   if (t.recurrence === 'quotidienne') return t.lastDone === todayStr();
   if (t.recurrence === 'hebdomadaire') return t.lastDone >= weekStartStr();
   if (t.recurrence === 'quinzomadaire') return t.lastDone >= fortnightStartStr();
   if (t.recurrence === 'mensuelle') return t.lastDone >= monthStartStr();
   return t.done;
+}
+
+// Décompte jusqu'à la prochaine échéance (pour l'affichage)
+// → { target: Date, countdown: nb de jours (négatif = en retard), done: bool } ou null
+export function nextDueInfo(t) {
+  if (!t.recurrence || t.recurrence === 'none') {
+    if (!t.due) return null;
+    const today = startOfDay(new Date());
+    const target = parseISO(t.due);
+    return { target, countdown: Math.round((target - today) / 86400000), done: !!t.done };
+  }
+  if (!hasSchedule(t)) return null;
+  const today = startOfDay(new Date());
+  const done = isTaskDone(t);
+  let target;
+  if (done) target = nextOccurrence(t, addDays(today, 1));
+  else target = prevOccurrence(t, today) || nextOccurrence(t, today);
+  if (!target) return null;
+  return { target, countdown: Math.round((startOfDay(target) - today) / 86400000), done };
 }
 
 // Amorce une fois la bibliothèque de recettes, sans écraser les recettes déjà
@@ -412,7 +507,7 @@ export function FamilyProvider({ children }) {
 
   // --- To-do ---
   const addTodo = (t) =>
-    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', recurrence: 'none', day: '', monthDay: '', time: '', lastDone: '', ...t }, ...list]);
+    update('todos', (list) => [{ id: uid(), done: false, priority: 'normale', memberId: null, due: '', recurrence: 'none', day: '', monthDay: '', time: '', start: todayStr(), lastDone: '', ...t }, ...list]);
   const toggleTodo = (id) =>
     update('todos', (list) => list.map((t) => {
       if (t.id !== id) return t;

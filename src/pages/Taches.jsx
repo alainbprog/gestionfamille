@@ -1,7 +1,24 @@
 import { useState } from 'react';
 import { Plus, Trash2, ListTodo, Check, Repeat, Clock } from 'lucide-react';
-import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS } from '../context/FamilyContext';
+import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS, nextDueInfo } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
+
+const fmtShort = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+function countdownOf(t) {
+  const info = nextDueInfo(t);
+  if (!info) return null;
+  const { target, countdown, done } = info;
+  const date = fmtShort(target);
+  if (done) {
+    if (countdown <= 0) return { text: 'Fait ✓ · prochaine aujourd’hui', cls: 'bg-emerald-50 text-emerald-700' };
+    if (countdown === 1) return { text: `Fait ✓ · prochaine demain (${date})`, cls: 'bg-emerald-50 text-emerald-700' };
+    return { text: `Fait ✓ · prochaine dans ${countdown} j (${date})`, cls: 'bg-emerald-50 text-emerald-700' };
+  }
+  if (countdown === 0) return { text: '⏰ C’est aujourd’hui !', cls: 'bg-amber-100 text-amber-800' };
+  if (countdown < 0) return { text: `⚠️ En retard de ${-countdown} j`, cls: 'bg-red-100 text-red-700' };
+  if (countdown === 1) return { text: `Demain (${date})`, cls: 'bg-brand-100 text-brand-700' };
+  return { text: `Dans ${countdown} jours (${date})`, cls: 'bg-brand-50 text-brand-700' };
+}
 
 const PRIORITIES = {
   haute: { label: 'Haute', color: 'bg-red-100 text-red-700' },
@@ -135,6 +152,7 @@ export default function Taches() {
                     <Clock size={11} /> {t.time}
                   </span>
                 )}
+                {(() => { const cd = countdownOf(t); return cd ? <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${cd.cls}`}>{cd.text}</span> : null; })()}
               </div>
             </div>
             {t.memberId && <Avatar member={memberById(t.memberId)} size={30} />}

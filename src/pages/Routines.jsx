@@ -1,9 +1,27 @@
 import { useState } from 'react';
 import { Plus, Trash2, AlarmClock, Check, Repeat, Clock } from 'lucide-react';
-import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS } from '../context/FamilyContext';
+import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS, nextDueInfo } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
 const dayLabel = (key) => WEEK_DAYS.find((d) => d.key === key)?.label;
+const fmtShort = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+
+// Décompte jusqu'à la prochaine échéance, prêt à afficher
+function countdownOf(t) {
+  const info = nextDueInfo(t);
+  if (!info) return null;
+  const { target, countdown, done } = info;
+  const date = fmtShort(target);
+  if (done) {
+    if (countdown <= 0) return { text: 'Fait ✓ · prochaine aujourd’hui', cls: 'bg-emerald-50 text-emerald-700' };
+    if (countdown === 1) return { text: `Fait ✓ · prochaine demain (${date})`, cls: 'bg-emerald-50 text-emerald-700' };
+    return { text: `Fait ✓ · prochaine dans ${countdown} j (${date})`, cls: 'bg-emerald-50 text-emerald-700' };
+  }
+  if (countdown === 0) return { text: '⏰ C’est aujourd’hui !', cls: 'bg-amber-100 text-amber-800' };
+  if (countdown < 0) return { text: `⚠️ En retard de ${-countdown} j (depuis ${date})`, cls: 'bg-red-100 text-red-700' };
+  if (countdown === 1) return { text: `Demain (${date})`, cls: 'bg-brand-100 text-brand-700' };
+  return { text: `Dans ${countdown} jours (${date})`, cls: 'bg-brand-50 text-brand-700' };
+}
 
 // Une routine = une tâche récurrente (chaque jour, chaque semaine, tous les 15 jours, 1 fois/mois)
 export default function Routines() {
@@ -80,8 +98,9 @@ export default function Routines() {
         <ul className="space-y-2">
           {routines.map((t) => {
             const done = isTaskDone(t);
+            const cd = countdownOf(t);
             return (
-              <li key={t.id} className={`card p-3.5 flex items-center gap-3 ${done ? 'opacity-70' : ''}`}>
+              <li key={t.id} className={`card p-3.5 flex items-center gap-3 ${done ? 'opacity-80' : ''}`}>
                 <button
                   onClick={() => toggleTodo(t.id)}
                   className={`w-6 h-6 rounded-full shrink-0 flex items-center justify-center transition ${done ? 'bg-brand-600 text-white' : 'border-2 border-black/20 hover:border-brand-500'}`}
@@ -101,6 +120,9 @@ export default function Routines() {
                       </span>
                     )}
                   </span>
+                  {cd && (
+                    <span className={`block w-fit text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 ${cd.cls}`}>{cd.text}</span>
+                  )}
                 </div>
                 {t.memberId && <Avatar member={memberById(t.memberId)} size={28} />}
                 <button onClick={() => removeTodo(t.id)} className="text-ink/30 hover:text-red-500 transition shrink-0" aria-label="Supprimer"><Trash2 size={18} /></button>
