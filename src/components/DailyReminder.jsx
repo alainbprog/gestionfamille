@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CalendarClock, CheckCircle2, Cake, X } from 'lucide-react';
-import { useFamily, isTaskDone } from '../context/FamilyContext';
+import { useFamily, isTaskDone, nextDueInfo } from '../context/FamilyContext';
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
 
@@ -43,7 +43,14 @@ export default function DailyReminder() {
   const dayEvents = events
     .filter((e) => e.date === day)
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-  const dayTodos = todos.filter((t) => !isTaskDone(t) && (!t.due || t.due <= day));
+  // À faire aujourd'hui : tâches ponctuelles échues + routines dues aujourd'hui/en retard
+  const dueNow = (t) => {
+    if (isTaskDone(t)) return false;
+    if (!t.recurrence || t.recurrence === 'none') return !t.due || t.due <= day;
+    const info = nextDueInfo(t);
+    return info ? info.countdown <= 0 : true; // récurrente : seulement si échue
+  };
+  const dayTodos = todos.filter(dueNow);
 
   // Prochain rendez-vous à venir (strictement après aujourd'hui), le plus proche
   const nextEvent = [...events]
@@ -147,14 +154,20 @@ export default function DailyReminder() {
               <CheckCircle2 size={16} className="text-brand-500" /> À faire
             </h4>
             <ul className="space-y-2">
-              {dayTodos.slice(0, 8).map((t) => (
-                <li key={t.id}>
-                  <button onClick={() => go('/taches')} className="w-full text-left bg-black/[0.04] rounded-2xl px-3 py-2.5 active:scale-[0.98] transition flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-brand-500 shrink-0" />
-                    <span className="font-semibold text-ink">{t.text}</span>
-                  </button>
-                </li>
-              ))}
+              {dayTodos.slice(0, 8).map((t) => {
+                const info = nextDueInfo(t);
+                const late = info && info.countdown < 0;
+                return (
+                  <li key={t.id}>
+                    <button onClick={() => go(t.recurrence && t.recurrence !== 'none' ? '/routines' : '/taches')} className="w-full text-left bg-black/[0.04] rounded-2xl px-3 py-2.5 active:scale-[0.98] transition flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${late ? 'bg-red-500' : 'bg-brand-500'}`} />
+                      <span className="font-semibold text-ink">{t.text}</span>
+                      {t.time && <span className="text-xs text-ink/50 ml-auto">🕒 {t.time}</span>}
+                      {late && <span className={`text-[11px] font-bold text-red-600 ${t.time ? '' : 'ml-auto'}`}>en retard</span>}
+                    </button>
+                  </li>
+                );
+              })}
               {dayTodos.length > 8 && (
                 <li className="text-xs text-ink/40 font-semibold px-1">+{dayTodos.length - 8} autre(s)…</li>
               )}
