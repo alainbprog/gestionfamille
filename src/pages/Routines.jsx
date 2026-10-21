@@ -5,6 +5,7 @@ import { Avatar } from '../components/MemberBadge';
 import TaskEditor from '../components/TaskEditor';
 
 const dayLabel = (key) => WEEK_DAYS.find((d) => d.key === key)?.label;
+const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmtShort = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
 // Décompte jusqu'à la prochaine échéance, prêt à afficher
@@ -32,11 +33,13 @@ export default function Routines() {
   const [day, setDay] = useState('lundi');
   const [monthDay, setMonthDay] = useState('1');
   const [time, setTime] = useState('');
+  const [start, setStart] = useState(todayStr());
   const [memberId, setMemberId] = useState('');
   const [editing, setEditing] = useState(null);
 
   const needsDay = recurrence === 'hebdomadaire' || recurrence === 'quinzomadaire';
   const needsMonthDay = recurrence === 'mensuelle';
+  const showStart = recurrence !== 'quotidienne'; // la date de départ cale le cycle
   const routines = todos.filter((t) => t.recurrence && t.recurrence !== 'none');
 
   const submit = (e) => {
@@ -48,10 +51,12 @@ export default function Routines() {
       day: needsDay ? day : '',
       monthDay: needsMonthDay ? monthDay : '',
       time,
+      start: start || todayStr(),
       memberId: memberId || null,
     });
     setText('');
     setTime('');
+    setStart(todayStr());
   };
 
   return (
@@ -82,6 +87,12 @@ export default function Routines() {
           )}
           <input type="time" className="input sm:w-32" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Heure" title="Heure (optionnel)" />
         </div>
+        {showStart && (
+          <label className="flex items-center gap-2 text-sm text-ink/60 font-semibold">
+            <span className="shrink-0">Démarre le</span>
+            <input type="date" className="input" value={start} onChange={(e) => setStart(e.target.value)} aria-label="Date de départ" />
+          </label>
+        )}
         <div className="flex flex-col sm:flex-row gap-2">
           <select className="input sm:flex-1" value={memberId} onChange={(e) => setMemberId(e.target.value)}>
             <option value="">Pour qui ? (optionnel)</option>

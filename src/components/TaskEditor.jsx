@@ -14,12 +14,14 @@ export default function TaskEditor({ todo, onClose }) {
     day: todo.day || 'lundi',
     monthDay: todo.monthDay || '1',
     time: todo.time || '',
+    start: todo.start || todayStr(),
     priority: todo.priority || 'normale',
     memberId: todo.memberId || '',
   }));
 
   const needsDay = f.recurrence === 'hebdomadaire' || f.recurrence === 'quinzomadaire';
   const needsMonthDay = f.recurrence === 'mensuelle';
+  const showStart = f.recurrence !== 'none' && f.recurrence !== 'quotidienne';
   const set = (patch) => setF((prev) => ({ ...prev, ...patch }));
 
   const save = (e) => {
@@ -34,8 +36,8 @@ export default function TaskEditor({ todo, onClose }) {
       priority: f.priority,
       memberId: f.memberId || null,
     };
-    // Si la tâche devient récurrente et n'a pas d'ancre, on la cale sur aujourd'hui
-    if (f.recurrence !== 'none' && !todo.start) patch.start = todayStr();
+    // Date de départ (ancre du cycle) pour une récurrence
+    if (f.recurrence !== 'none') patch.start = f.start || todayStr();
     updateTodo(todo.id, patch);
     onClose();
   };
@@ -67,8 +69,15 @@ export default function TaskEditor({ todo, onClose }) {
           <input type="time" className="input sm:w-32" value={f.time} onChange={(e) => set({ time: e.target.value })} aria-label="Heure" title="Heure (optionnel)" />
         </div>
 
+        {showStart && (
+          <label className="flex items-center gap-2 text-sm text-ink/60 font-semibold">
+            <span className="shrink-0">Démarre le</span>
+            <input type="date" className="input" value={f.start} onChange={(e) => set({ start: e.target.value })} aria-label="Date de départ" />
+          </label>
+        )}
+
         {f.recurrence !== 'none' && (
-          <p className="text-xs text-ink/50">⏰ Classée dans <b>Routines</b>. Le décompte repart de la date du jour si besoin.</p>
+          <p className="text-xs text-ink/50">⏰ Classée dans <b>Routines</b>. Le cycle et le décompte partent de la date ci-dessus.</p>
         )}
 
         <div className="flex flex-col sm:flex-row gap-2">
