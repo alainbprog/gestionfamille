@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus, Trash2, ListTodo, Check, Repeat, Clock } from 'lucide-react';
+import { Plus, Trash2, ListTodo, Check, Repeat, Clock, Pencil } from 'lucide-react';
 import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS, nextDueInfo } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
+import TaskEditor from '../components/TaskEditor';
 
 const fmtShort = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 function countdownOf(t) {
@@ -47,6 +48,8 @@ export default function Taches() {
   const [monthDay, setMonthDay] = useState('1');
   const [time, setTime] = useState('');
   const [filter, setFilter] = useState('all'); // all | mine-by-member id
+  const [editing, setEditing] = useState(null);
+  const [movedMsg, setMovedMsg] = useState(false);
 
   const needsWeekday = recurrence === 'hebdomadaire' || recurrence === 'quinzomadaire';
   const needsMonthDay = recurrence === 'mensuelle';
@@ -64,12 +67,14 @@ export default function Taches() {
       time,
     });
     setText('');
-    setRecurrence('none');
     setTime('');
+    if (recurrence !== 'none') { setMovedMsg(true); setTimeout(() => setMovedMsg(false), 4000); }
+    setRecurrence('none');
   };
 
   const priorityRank = { haute: 0, normale: 1, basse: 2 };
-  const visible = todos.filter((t) => filter === 'all' || t.memberId === filter);
+  // Tâches = ponctuelles uniquement ; les récurrentes vivent dans Routines
+  const visible = todos.filter((t) => (!t.recurrence || t.recurrence === 'none') && (filter === 'all' || t.memberId === filter));
   const pending = visible.filter((t) => !isTaskDone(t)).sort((a, b) => priorityRank[a.priority] - priorityRank[b.priority]);
   const done = visible.filter((t) => isTaskDone(t));
 
@@ -114,6 +119,12 @@ export default function Taches() {
         <button type="submit" className="btn-primary w-full sm:w-auto"><Plus size={18} /> Ajouter</button>
       </form>
 
+      {movedMsg && (
+        <div className="mb-4 p-3 rounded-xl text-sm font-semibold bg-brand-50 text-brand-700">
+          ⏰ Tâche récurrente → ajoutée dans <b>Routines</b>.
+        </div>
+      )}
+
       {/* Filtres par membre */}
       {members.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
@@ -156,6 +167,7 @@ export default function Taches() {
               </div>
             </div>
             {t.memberId && <Avatar member={memberById(t.memberId)} size={30} />}
+            <button onClick={() => setEditing(t)} className="text-gray-300 hover:text-brand-600 transition shrink-0" aria-label="Modifier"><Pencil size={17} /></button>
             <button onClick={() => removeTodo(t.id)} className="text-gray-300 hover:text-red-500 transition shrink-0" aria-label="Supprimer"><Trash2 size={18} /></button>
           </li>
         ))}
@@ -175,6 +187,8 @@ export default function Taches() {
           </ul>
         </section>
       )}
+
+      {editing && <TaskEditor todo={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }

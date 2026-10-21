@@ -20,6 +20,26 @@ function ageToday(dateStr) {
   return new Date().getFullYear() - y;
 }
 
+// Nombre de jours avant une date + compte à rebours court
+function daysUntil(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  return Math.round((d - t) / 86400000);
+}
+function shortCountdown(dateStr) {
+  const n = daysUntil(dateStr);
+  if (n <= 0) return "aujourd'hui";
+  if (n === 1) return 'demain';
+  return `dans ${n} j`;
+}
+// Dernier jour (dimanche) de la semaine en cours, au format ISO
+function weekEndStr() {
+  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const dow = (t.getDay() + 6) % 7; // 0 = lundi
+  t.setDate(t.getDate() + (6 - dow));
+  return t.toISOString().slice(0, 10);
+}
+
 // Libellé relatif d'une date (demain, dans X jours, …)
 function eventDateLabel(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -40,9 +60,6 @@ export default function DailyReminder() {
   const navigate = useNavigate();
 
   const day = todayIso();
-  const dayEvents = events
-    .filter((e) => e.date === day)
-    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
   // À faire aujourd'hui : tâches ponctuelles échues + routines dues aujourd'hui/en retard
   const dueNow = (t) => {
     if (isTaskDone(t)) return false;
@@ -52,7 +69,13 @@ export default function DailyReminder() {
   };
   const dayTodos = todos.filter(dueNow);
 
-  // Prochain rendez-vous à venir (strictement après aujourd'hui), le plus proche
+  // Rendez-vous de la semaine en cours (d'aujourd'hui au dimanche), triés
+  const weekEnd = weekEndStr();
+  const weekEvents = [...events]
+    .filter((e) => e.date >= day && e.date <= weekEnd)
+    .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')));
+
+  // Prochain rendez-vous à venir (repli si rien cette semaine)
   const nextEvent = [...events]
     .filter((e) => e.date > day)
     .sort((a, b) => (a.date + (a.time || '')).localeCompare(b.date + (b.time || '')))[0] || null;
@@ -63,7 +86,7 @@ export default function DailyReminder() {
     ...birthdays.filter((b) => isBirthdayToday(b.date)).map((b) => ({ id: 'b-' + b.id, name: b.name, date: b.date })),
   ];
 
-  const hasContent = dayEvents.length > 0 || dayTodos.length > 0 || dayBirthdays.length > 0 || !!nextEvent;
+  const hasContent = weekEvents.length > 0 || dayTodos.length > 0 || dayBirthdays.length > 0 || !!nextEvent;
 
   // S'affiche au montage (= ouverture de l'appli) s'il y a quelque chose à rappeler.
   const [open, setOpen] = useState(hasContent);
@@ -112,29 +135,30 @@ export default function DailyReminder() {
           </div>
         )}
 
-        {dayEvents.length > 0 && (
+        {weekEvents.length > 0 ? (
           <div>
             <h4 className="font-bold text-sm text-ink/60 mb-2 flex items-center gap-1.5">
-              <CalendarClock size={16} className="text-brand-500" /> Rendez-vous du jour
+              <CalendarClock size={16} className="text-brand-500" /> Rendez-vous de la semaine
             </h4>
             <ul className="space-y-2">
-              {dayEvents.map((e) => (
+              {weekEvents.map((e) => (
                 <li key={e.id}>
-                  <button onClick={() => go('/agenda')} className="w-full text-left bg-brand-50 rounded-2xl px-3 py-2.5 active:scale-[0.98] transition">
-                    <span className="font-bold text-ink">{e.title}</span>
-                    {(e.time || e.location) && (
-                      <span className="block text-xs text-ink/50 mt-0.5">
-                        {e.time && `🕒 ${e.time}`}{e.time && e.location ? ' · ' : ''}{e.location && `📍 ${e.location}`}
+                  <button onClick={() => go('/agenda')} className="w-full text-left bg-brand-50 rounded-2xl px-3 py-2.5 active:scale-[0.98] transition flex items-start gap-2">
+                    <span className="min-w-0 flex-1">
+                      <span className="font-bold text-ink">{e.title}</span>
+                      <span className="block text-xs text-ink/50 mt-0.5 capitalize">
+                        {eventDateLabel(e.date)}{e.time ? ` · 🕒 ${e.time}` : ''}{e.location ? ` · 📍 ${e.location}` : ''}
                       </span>
-                    )}
+                    </span>
+                    <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-brand-100 text-brand-700 whitespace-nowrap">
+                      {shortCountdown(e.date)}
+                    </span>
                   </button>
                 </li>
               ))}
             </ul>
           </div>
-        )}
-
-        {nextEvent && (
+        ) : nextEvent ? (
           <div>
             <h4 className="font-bold text-sm text-ink/60 mb-2 flex items-center gap-1.5">
               <CalendarClock size={16} className="text-brand-500" /> Prochain rendez-vous
@@ -146,7 +170,7 @@ export default function DailyReminder() {
               </span>
             </button>
           </div>
-        )}
+        ) : null}
 
         {dayTodos.length > 0 && (
           <div>

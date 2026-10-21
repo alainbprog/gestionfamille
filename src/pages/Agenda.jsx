@@ -46,7 +46,7 @@ export default function Agenda() {
       <header className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-extrabold flex items-center gap-2">
-            <CalendarDays className="text-brand-600" /> Agenda
+            <CalendarDays className="text-brand-600" /> Rendez-vous
           </h1>
           <p className="text-gray-500 text-sm mt-1">{upcoming.length} rendez-vous à venir</p>
         </div>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Plus, Trash2, AlarmClock, Check, Repeat, Clock } from 'lucide-react';
+import { Plus, Trash2, AlarmClock, Check, Repeat, Clock, Pencil } from 'lucide-react';
 import { useFamily, isTaskDone, RECURRENCES, WEEK_DAYS, nextDueInfo } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
+import TaskEditor from '../components/TaskEditor';
 
 const dayLabel = (key) => WEEK_DAYS.find((d) => d.key === key)?.label;
 const fmtShort = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -32,6 +33,7 @@ export default function Routines() {
   const [monthDay, setMonthDay] = useState('1');
   const [time, setTime] = useState('');
   const [memberId, setMemberId] = useState('');
+  const [editing, setEditing] = useState(null);
 
   const needsDay = recurrence === 'hebdomadaire' || recurrence === 'quinzomadaire';
   const needsMonthDay = recurrence === 'mensuelle';
@@ -125,12 +127,15 @@ export default function Routines() {
                   )}
                 </div>
                 {t.memberId && <Avatar member={memberById(t.memberId)} size={28} />}
+                <button onClick={() => setEditing(t)} className="text-ink/30 hover:text-brand-600 transition shrink-0" aria-label="Modifier"><Pencil size={17} /></button>
                 <button onClick={() => removeTodo(t.id)} className="text-ink/30 hover:text-red-500 transition shrink-0" aria-label="Supprimer"><Trash2 size={18} /></button>
               </li>
             );
           })}
         </ul>
       )}
+
+      {editing && <TaskEditor todo={editing} onClose={() => setEditing(null)} />}
     </div>
   );
 }
