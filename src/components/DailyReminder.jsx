@@ -32,11 +32,12 @@ function shortCountdown(dateStr) {
   if (n === 1) return 'demain';
   return `dans ${n} j`;
 }
-// Dernier jour (dimanche) de la semaine en cours, au format ISO
+// Fin de la fenêtre « semaine » : 7 jours glissants (aujourd'hui + 6), au format ISO.
+// (fenêtre glissante : la relance affiche toujours les RDV de la semaine à venir,
+//  quel que soit le jour d'ouverture — même le dimanche)
 function weekEndStr() {
   const t = new Date(); t.setHours(0, 0, 0, 0);
-  const dow = (t.getDay() + 6) % 7; // 0 = lundi
-  t.setDate(t.getDate() + (6 - dow));
+  t.setDate(t.getDate() + 6);
   return t.toISOString().slice(0, 10);
 }
 
