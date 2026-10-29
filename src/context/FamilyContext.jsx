@@ -403,24 +403,11 @@ function seedShopping(base) {
   return next;
 }
 
-// Remise à zéro unique : vide RDV, tâches/routines, notes, anniversaires et ne
-// garde qu'une personne « Moi » (conserve courses, menus, recettes, bien-être).
-function purgeOnce(base) {
-  try {
-    if (localStorage.getItem(PURGE_KEY)) return base;
-  } catch {
-    return base;
-  }
-  const next = { ...base, events: [], todos: [], notes: [], birthdays: [], members: [moiMember()] };
-  try { localStorage.setItem(PURGE_KEY, '1'); } catch { /* ignore */ }
-  return next;
-}
-
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const base = raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData };
-    return purgeOnce(seedShopping(seedRecipes(base)));
+    return seedShopping(seedRecipes(base));
   } catch {
     return defaultData;
   }
