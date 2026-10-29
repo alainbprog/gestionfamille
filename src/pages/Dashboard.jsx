@@ -30,7 +30,8 @@ export default function Dashboard() {
   const today = new Date();
   const todayIso = iso(today);
   const shoppingLeft = shopping.filter((i) => !i.done).length;
-  const todosLeft = todos.filter((t) => !isTaskDone(t)).length;
+  // Tuile Tâches = tâches ponctuelles non faites (les routines comptent sur la tuile Routines)
+  const todosLeft = todos.filter((t) => (!t.recurrence || t.recurrence === 'none') && !isTaskDone(t)).length;
   const routinesCount = todos.filter((t) => t.recurrence && t.recurrence !== 'none').length;
   const todayEvents = events.filter((e) => e.date === todayIso).length;
   const upcomingEvents = events.filter((e) => e.date >= todayIso).length;
