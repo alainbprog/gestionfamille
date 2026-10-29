@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, Trash2, Users, X, Cake, RotateCcw, Cloud, CloudOff, RefreshCw, Check as CheckIcon } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Plus, Trash2, Users, X, Cake, RotateCcw, Cloud, CloudOff, RefreshCw, Check as CheckIcon, Download, Upload } from 'lucide-react';
 import { useFamily, MEMBER_COLORS } from '../context/FamilyContext';
 import { Avatar } from '../components/MemberBadge';
 
@@ -18,7 +18,42 @@ function ageFrom(birthdate) {
 const emptyForm = { name: '', role: 'Enfant', emoji: '🧒', color: MEMBER_COLORS[3], birthdate: '' };
 
 export default function Famille() {
-  const { members, todos, events, addMember, removeMember, resetData, purgeData, sync, connectSync, disconnectSync } = useFamily();
+  const { members, todos, events, addMember, removeMember, resetData, purgeData, exportData, importData, sync, connectSync, disconnectSync } = useFamily();
+  const fileRef = useRef(null);
+  const [backupMsg, setBackupMsg] = useState('');
+
+  const doExport = () => {
+    const blob = new Blob([exportData()], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gestionfamille-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setBackupMsg('✅ Sauvegarde téléchargée. Garde ce fichier en lieu sûr.');
+    setTimeout(() => setBackupMsg(''), 5000);
+  };
+
+  const doImport = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const obj = JSON.parse(reader.result);
+        if (!confirm('Importer cette sauvegarde ? Les données actuelles seront remplacées par celles du fichier.')) return;
+        if (importData(obj)) { setBackupMsg('✅ Données restaurées depuis la sauvegarde.'); }
+        else setBackupMsg('❌ Fichier invalide.');
+      } catch {
+        setBackupMsg('❌ Fichier illisible (JSON invalide).');
+      }
+      setTimeout(() => setBackupMsg(''), 5000);
+    };
+    reader.readAsText(file);
+  };
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [codeInput, setCodeInput] = useState('');
@@ -127,6 +162,24 @@ export default function Famille() {
             La synchronisation fonctionne une fois l'application déployée sur Netlify. En local, les données restent sur cet appareil.
           </p>
         )}
+      </section>
+
+      {/* Sauvegarde / Restauration */}
+      <section className="mt-8 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-extrabold text-gray-500 mb-1">Sauvegarde de mes données</h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Télécharge un fichier de secours de <b>toutes</b> tes données (à garder précieusement). Tu pourras le ré-importer en cas de nouveau téléphone ou de perte.
+        </p>
+        {backupMsg && <div className="mb-3 p-3 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700">{backupMsg}</div>}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={doExport} className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2.5 rounded-xl transition active:scale-95">
+            <Download size={18} /> Exporter (télécharger)
+          </button>
+          <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-4 py-2.5 rounded-xl transition active:scale-95">
+            <Upload size={18} /> Importer un fichier
+          </button>
+          <input ref={fileRef} type="file" accept="application/json,.json" onChange={doImport} className="hidden" />
+        </div>
       </section>
 
       {/* Repartir de zéro (ciblé) */}

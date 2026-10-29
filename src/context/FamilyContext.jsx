@@ -610,6 +610,15 @@ export function FamilyProvider({ children }) {
     bumpRev();
   };
 
+  // --- Sauvegarde / Restauration (fichier JSON) ---
+  const exportData = () => JSON.stringify(dataRef.current, null, 2);
+  const importData = (obj) => {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
+    setData({ ...defaultData, ...obj });
+    bumpRev();
+    return true;
+  };
+
   // --- Synchronisation multi-appareils (via Netlify Function + Blobs) ---
   const pushNow = async () => {
     const res = await fetch(SYNC_URL, {
@@ -693,6 +702,8 @@ export function FamilyProvider({ children }) {
     setWellbeing,
     resetData,
     purgeData,
+    exportData,
+    importData,
     sync, connectSync, disconnectSync,
   };
 
