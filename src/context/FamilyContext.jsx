@@ -7,9 +7,13 @@ const REV_KEY = 'tribu-rev-v1';
 const SYNC_KEY = 'tribu-sync-v1';
 const RECIPES_SEED_KEY = 'tribu-recipes-seed-v1';
 const SHOPPING_SEED_KEY = 'tribu-shopping-seed-v1';
+const PURGE_KEY = 'tribu-purge-v1'; // remise à zéro unique (RDV/tâches/notes/anniv./famille)
 const SYNC_URL = '/.netlify/functions/sync';
 
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+// Membre unique « Moi » après remise à zéro
+const moiMember = () => ({ id: 'moi', name: 'Moi', role: 'Parent', color: '#6366f1', emoji: '🙂', birthdate: '' });
 
 // Palette de couleurs proposées pour les membres de la famille
 export const MEMBER_COLORS = [
@@ -399,11 +403,24 @@ function seedShopping(base) {
   return next;
 }
 
+// Remise à zéro unique : vide RDV, tâches/routines, notes, anniversaires et ne
+// garde qu'une personne « Moi » (conserve courses, menus, recettes, bien-être).
+function purgeOnce(base) {
+  try {
+    if (localStorage.getItem(PURGE_KEY)) return base;
+  } catch {
+    return base;
+  }
+  const next = { ...base, events: [], todos: [], notes: [], birthdays: [], members: [moiMember()] };
+  try { localStorage.setItem(PURGE_KEY, '1'); } catch { /* ignore */ }
+  return next;
+}
+
 function load() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const base = raw ? { ...defaultData, ...JSON.parse(raw) } : { ...defaultData };
-    return seedShopping(seedRecipes(base));
+    return purgeOnce(seedShopping(seedRecipes(base)));
   } catch {
     return defaultData;
   }
@@ -599,6 +616,13 @@ export function FamilyProvider({ children }) {
     bumpRev();
   };
 
+  // Repartir de zéro : vide RDV, tâches/routines, notes, anniversaires et ne
+  // garde qu'une personne « Moi » (conserve courses, menus, recettes, bien-être).
+  const purgeData = () => {
+    setData((d) => ({ ...d, events: [], todos: [], notes: [], birthdays: [], members: [moiMember()] }));
+    bumpRev();
+  };
+
   // --- Synchronisation multi-appareils (via Netlify Function + Blobs) ---
   const pushNow = async () => {
     const res = await fetch(SYNC_URL, {
@@ -681,6 +705,7 @@ export function FamilyProvider({ children }) {
     addBirthday, removeBirthday,
     setWellbeing,
     resetData,
+    purgeData,
     sync, connectSync, disconnectSync,
   };
 

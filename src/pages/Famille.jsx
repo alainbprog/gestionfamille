@@ -18,7 +18,7 @@ function ageFrom(birthdate) {
 const emptyForm = { name: '', role: 'Enfant', emoji: '🧒', color: MEMBER_COLORS[3], birthdate: '' };
 
 export default function Famille() {
-  const { members, todos, events, addMember, removeMember, resetData, sync, connectSync, disconnectSync } = useFamily();
+  const { members, todos, events, addMember, removeMember, resetData, purgeData, sync, connectSync, disconnectSync } = useFamily();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [codeInput, setCodeInput] = useState('');
@@ -129,19 +129,35 @@ export default function Famille() {
         )}
       </section>
 
-      {/* Réinitialisation des données */}
+      {/* Repartir de zéro (ciblé) */}
       <section className="mt-8 border-t border-gray-100 pt-6">
-        <h2 className="text-sm font-extrabold text-gray-500 mb-1">Réinitialiser l'application</h2>
+        <h2 className="text-sm font-extrabold text-gray-500 mb-1">Repartir de zéro</h2>
         <p className="text-sm text-gray-400 mb-3">
-          Efface toutes les données locales (membres, courses, agenda, tâches, menus) et rétablit la famille par défaut. Action irréversible.
+          Efface les <b>rendez-vous</b>, <b>tâches</b>, <b>routines</b>, <b>notes</b> et <b>anniversaires</b>, et ne garde qu'une personne « <b>Moi</b> ». Conserve les courses, menus et recettes. Action irréversible.
+        </p>
+        <button
+          onClick={() => {
+            if (confirm('Repartir de zéro ? RDV, tâches, routines, notes et anniversaires seront effacés, et la famille réduite à « Moi ».')) purgeData();
+          }}
+          className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl transition active:scale-95"
+        >
+          <RotateCcw size={18} /> Repartir de zéro
+        </button>
+      </section>
+
+      {/* Réinitialisation complète (usine) */}
+      <section className="mt-6 border-t border-gray-100 pt-6">
+        <h2 className="text-sm font-extrabold text-gray-500 mb-1">Réinitialiser l'application (tout)</h2>
+        <p className="text-sm text-gray-400 mb-3">
+          Efface toutes les données locales (membres, courses, agenda, tâches, menus…) et rétablit la famille par défaut. Action irréversible.
         </p>
         <button
           onClick={() => {
             if (confirm('Tout réinitialiser ? Toutes vos données locales seront effacées et remplacées par la famille par défaut.')) resetData();
           }}
-          className="inline-flex items-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 font-bold px-4 py-2.5 rounded-xl transition active:scale-95"
+          className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold px-4 py-2.5 rounded-xl transition active:scale-95"
         >
-          <RotateCcw size={18} /> Réinitialiser les données
+          <RotateCcw size={18} /> Réinitialiser (tout)
         </button>
       </section>
 
